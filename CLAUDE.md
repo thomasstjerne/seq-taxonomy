@@ -9,8 +9,11 @@ Build an approach for unified taxonomic annotation of DNA sequences shared to GB
 ## Data
 
 **`trino_joined.parquet`** — main working dataset (full join from Trino/GBIF). Not committed to git.
+171,809,965 rows · 22,036,768 unique sequences · 177 datasets · 1,186,295 unique scientific names.
+Taxon rank distribution: `GENUS` (30%), `SPECIES` (18%), `FAMILY` (18%), `UNRANKED` (15%), `ORDER` (7%), `KINGDOM` (5%), `CLASS` (4%), `PHYLUM` (2%), and minor ranks.
 
 **`small_dataset.parquet`** — 100,000 occurrence rows (subset for exploration), with 83,961 unique sequences from 3 GBIF datasets.
+Taxon rank distribution: `UNRANKED` (56%), `FAMILY` (16%), `SPECIES` (8%), `GENUS` (7%), `ORDER` (6%), and higher ranks.
 
 Schema:
 | Column | Type | Notes |
@@ -21,8 +24,6 @@ Schema:
 | `kingdom` … `species` | VARCHAR | Publisher-assigned taxonomy (may be NULL) |
 | `scientificname` | VARCHAR | Publisher-assigned name at the identified rank |
 | `taxonrank` | VARCHAR | Rank of the identification |
-
-Taxon rank distribution: `UNRANKED` (56%), `FAMILY` (16%), `SPECIES` (8%), `GENUS` (7%), `ORDER` (6%), and higher ranks.
 
 The key analytical unit is `nucleotidesequenceid`: the same sequence can appear multiple times (once per dataset that contains it), potentially with different taxonomic annotations.
 
