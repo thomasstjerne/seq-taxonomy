@@ -10,9 +10,8 @@ Usage:
     python3 analysis/characterise_top100.py
 """
 
-import json
-import textwrap
 import time
+from datetime import date
 from pathlib import Path
 
 import duckdb
@@ -22,7 +21,7 @@ PARQUET = "top100_distinct_families.parquet"
 REPORT = Path("output/top100_characterisation.md")
 GBIF_SEARCH = "https://api.gbif.org/v1/occurrence/search"
 GBIF_DATASET = "https://api.gbif.org/v1/dataset/{}"
-GBIF_SAMPLE_N = 20  # number of unique sequences to query
+GBIF_SAMPLE_N = 100  # number of unique sequences to query
 
 
 def query(sql: str):
@@ -174,9 +173,7 @@ def main():
     # ── 8. Write report ───────────────────────────────────────────────────────
     REPORT.parent.mkdir(exist_ok=True)
 
-    def md_table(df, cols=None):
-        if cols:
-            df = df[cols]
+    def md_table(df):
         header = "| " + " | ".join(str(c) for c in df.columns) + " |"
         sep    = "| " + " | ".join("---" for _ in df.columns) + " |"
         rows   = "\n".join(
@@ -185,117 +182,120 @@ def main():
         )
         return "\n".join([header, sep, rows])
 
-    report = textwrap.dedent(f"""\
-    # Characterisation of the Top-100 Most Taxonomically Ambiguous Sequences
-
-    **Source file:** `{PARQUET}`
-    **Analysis date:** 2026-05-05
-    **Total rows:** {total_rows:,}
-    **Unique sequences:** {unique_seqs:,}
-    **Unique datasets:** {unique_datasets:,}
-
-    ---
-
-    ## Summary
-
-    The top-{unique_seqs} most family-ambiguous sequences in the GBIF metabarcoding corpus
-    are **18S rRNA amplicons** from **invertebrate animals**, contributed almost entirely by
-    the **iBOL/BOLD dataset**. The taxonomic disagreements arise from within-dataset variation:
-    the same 18S sequence has been submitted by multiple independent research campaigns under
-    the BOLD umbrella, each using a different reference database or taxonomic framework.
-
-    ---
-
-    ## 1. Target Genes
-
-    {GBIF_SAMPLE_N} unique sequences were submitted to the GBIF Occurrence Search API
-    (`/v1/occurrence/search?advanced=1&dna_sequence_id=<id>`).
-
-    | Target gene | Sequences sampled | Fraction |
-    |---|---|---|
-    """)
-
     total_with_gene = sum(gene_counts.values())
+
+    lines = []
+
+    lines += [
+        f"# Characterisation of the Top-{unique_seqs} Most Taxonomically Ambiguous Sequences",
+        "",
+        f"**Source file:** `{PARQUET}`",
+        f"**Analysis date:** {date.today()}",
+        f"**Total rows:** {total_rows:,}",
+        f"**Unique sequences:** {unique_seqs:,}",
+        f"**Unique datasets:** {unique_datasets:,}",
+        "",
+        "---",
+        "",
+        "## Summary",
+        "",
+        f"All {unique_seqs} sequences originate from a single GBIF dataset — the "
+        "**International Barcode of Life project (iBOL/BOLD)**. They are almost exclusively "
+        "**invertebrate animal** sequences spanning 18 phyla. Taxonomic disagreements arise "
+        "entirely from within-BOLD heterogeneity: the same sequence has been submitted by "
+        "multiple independent research campaigns under the BOLD umbrella, each using a "
+        "different reference database or taxonomic framework, producing conflicting "
+        "family-level names.",
+        "",
+        "---",
+        "",
+        "## 1. Target Genes",
+        "",
+        f"All {GBIF_SAMPLE_N} unique sequences were submitted to the GBIF Occurrence Search API "
+        "(`/v1/occurrence/search?advanced=1&dna_sequence_id=<id>`).",
+        "",
+        "| Target gene | Sequences sampled | Fraction |",
+        "| --- | --- | --- |",
+    ]
+
     for gene, cnt in sorted(gene_counts.items(), key=lambda x: -x[1]):
         pct = 100 * cnt / total_with_gene if total_with_gene else 0
-        report += f"    | {gene} | {cnt} | {pct:.0f}% |\n"
+        lines.append(f"| {gene} | {cnt} | {pct:.0f}% |")
 
-    report += textwrap.dedent(f"""
-    **Why 18S drives ambiguity:** 18S is used across a huge breadth of eukaryotic life,
-    and its reference databases (PR², SILVA, NCBI) differ substantially in family-level
-    taxonomy — especially for invertebrates with unsettled morphological taxonomy.
-
-    ---
-
-    ## 2. Taxonomic Groups
-
-    ### Kingdom
-
-    {md_table(kingdoms)}
-
-    ### Top phyla (by occurrence count)
-
-    {md_table(phyla)}
-
-    ### Taxon rank distribution
-
-    {md_table(ranks)}
-
-    ---
-
-    ## 3. Datasets
-
-    ### Occurrence and sequence counts per dataset
-
-    """)
+    lines += [
+        "",
+        "**Note:** The `targetGene` field in the DNADerivedData extension was not populated "
+        "for any record — the gene cannot be determined from the API response alone. Based on "
+        "prior inspection of the parquet data, these sequences are consistent with **18S-5P** "
+        "(5′ region of the 18S small-subunit rRNA gene).",
+        "",
+        "---",
+        "",
+        "## 2. Taxonomic Groups",
+        "",
+        "### Kingdom",
+        "",
+        md_table(kingdoms),
+        "",
+        "### Top phyla (by occurrence count)",
+        "",
+        md_table(phyla),
+        "",
+        "### Taxon rank distribution",
+        "",
+        "Note: rows with null family are excluded, so UNRANKED and higher-rank-only records do not appear.",
+        "",
+        md_table(ranks),
+        "",
+        "---",
+        "",
+        "## 3. Datasets",
+        "",
+        "All occurrences come from a single dataset:",
+        "",
+        "| Dataset key | Title | Occurrences | Sequences |",
+        "| --- | --- | --- | --- |",
+    ]
 
     for _, row in datasets.iterrows():
         key = row["datasetkey"]
         title = titles.get(key, key)
-        report += f"    | `{key}` | {title} | {int(row['occurrences']):,} | {int(row['sequences']):,} |\n"
+        lines.append(f"| `{key}` | {title} | {int(row['occurrences']):,} | {int(row['sequences']):,} |")
 
-    report = report.replace(
-        "    | `",
-        "| `",
-    )
-    # Prepend header
-    report += textwrap.dedent("""
-    (Header: datasetkey | title | occurrences | sequences)
+    lines += [
+        "",
+        "### Family-count summary (top 20 sequences)",
+        "",
+        md_table(family_counts.head(20)),
+        "",
+        "---",
+        "",
+        "## Root Cause of Disagreements",
+        "",
+        "1. **Multiple reference databases.** Different BOLD campaigns use different reference "
+        "databases (PR², SILVA, custom databases) that disagree on family boundaries, "
+        "particularly for invertebrates with contested higher taxonomy.",
+        "2. **Different BOLD project submitters.** The same amplicon sequence can appear in "
+        "multiple BOLD projects submitted by different PIs who identified it independently.",
+        "3. **Taxonomic instability.** Groups like Tardigrada, Acanthocephala, and "
+        "Xenacoelomorpha have genuinely unstable family-level taxonomy across published "
+        "reference databases.",
+        "",
+        "---",
+        "",
+        "## Recommendations",
+        "",
+        "1. **Marker-aware consensus.** Calibrate any consensus algorithm to the specific "
+        "marker in use (PR² for protists, a curated invertebrate database for Metazoa).",
+        "2. **BOLD sub-project tracing.** Within the iBOL GBIF dataset, individual records "
+        "carry BOLD project codes that could identify which projects drive the most disagreements.",
+        "3. **Re-evaluate the ambiguity metric.** Consider weighting by the number of datasets "
+        "contributing each family name to give a more informative picture of genuine conflict "
+        "vs. within-dataset noise.",
+        "",
+    ]
 
-    ### Family-count summary (top 20 sequences)
-
-    """)
-    report += md_table(family_counts.head(20))
-
-    report += textwrap.dedent("""
-
-    ---
-
-    ## Root Cause of Disagreements
-
-    1. **Multiple reference databases.** Different BOLD campaigns use different 18S reference
-       databases (PR², SILVA, custom databases) that disagree on family boundaries, particularly
-       for invertebrates with contested higher taxonomy.
-    2. **Different BOLD project submitters.** The same 18S amplicon can appear in multiple BOLD
-       projects submitted by different PIs who identified it independently.
-    3. **Rank truncation.** Some submitters stop at phylum or class level (no family assigned),
-       creating a NULL vs. named-family disagreement even where the identification is not wrong.
-    4. **Taxonomic instability.** Groups like Tardigrada, Acanthocephala, and Xenacoelomorpha
-       have genuinely unstable family-level taxonomy in current reference databases.
-
-    ---
-
-    ## Recommendations
-
-    1. **Rank normalisation.** Pre-filter NULL families before counting distinct family names;
-       this will substantially reduce apparent ambiguity from annotation-depth differences.
-    2. **Marker-aware consensus.** Calibrate any consensus algorithm to 18S taxonomy (PR² for
-       protists, a curated invertebrate 18S database for Metazoa).
-    3. **BOLD sub-project tracing.** Cross-reference BOLD project codes within the iBOL GBIF
-       dataset to identify which projects drive the most disagreements.
-    """)
-
-    REPORT.write_text(report)
+    REPORT.write_text("\n".join(lines))
     print(f"Report written to {REPORT}")
 
 
