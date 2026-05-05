@@ -1,4 +1,6 @@
-# seq-taxonomy
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project goal
 
@@ -26,14 +28,16 @@ The key analytical unit is `nucleotidesequenceid`: the same sequence can appear 
 
 - **DuckDB** — primary tool for all data analysis; use the CLI (`duckdb`) or in-process via Python (`import duckdb`)
 - Parquet files are queried directly — no import step needed
+- Run a one-off query: `duckdb -c "SELECT ... FROM 'small_dataset.parquet' ..."`
+- Run a SQL file: `duckdb -c ".read queries/foo.sql"`
+- `.gitignore` excludes all `*.parquet` except `small_dataset.parquet` — larger datasets should not be committed
 
 ## Conventions
 
 - Query files go in `queries/` (`.sql` extension)
 - Analysis scripts go in `analysis/` (Python preferred)
 - Results/outputs go in `output/` (CSV or Parquet)
-- Keep queries self-contained and runnable from the repo root, e.g.:  
-  `duckdb -c "SELECT ... FROM 'small_dataset.parquet' ..."`
+- Keep queries self-contained and runnable from the repo root
 
 ## Key analytical questions
 
