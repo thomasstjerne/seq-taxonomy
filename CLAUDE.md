@@ -8,6 +8,8 @@ Build an approach for unified taxonomic annotation of DNA sequences shared to GB
 
 ## Data
 
+**`trino_joined.parquet`** — main working dataset (full join from Trino/GBIF). Not committed to git.
+
 **`small_dataset.parquet`** — 100,000 occurrence rows (subset for exploration), with 83,961 unique sequences from 3 GBIF datasets.
 
 Schema:
