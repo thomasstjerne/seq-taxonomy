@@ -1,0 +1,42 @@
+# seq-taxonomy
+
+## Project goal
+
+Build an approach for unified taxonomic annotation of DNA sequences shared to GBIF, resolving disagreements across datasets where the same sequence variant has been annotated differently by different publishers.
+
+## Data
+
+**`small_dataset.parquet`** — 100,000 occurrence rows (subset for exploration), with 83,961 unique sequences from 3 GBIF datasets.
+
+Schema:
+| Column | Type | Notes |
+|---|---|---|
+| `nucleotidesequenceid` | VARCHAR | MD5 hash identifying the exact sequence variant (ASV/OTU) |
+| `gbifid` | BIGINT | GBIF occurrence key |
+| `datasetkey` | VARCHAR | UUID of the publishing dataset |
+| `kingdom` … `species` | VARCHAR | Publisher-assigned taxonomy (may be NULL) |
+| `scientificname` | VARCHAR | Publisher-assigned name at the identified rank |
+| `taxonrank` | VARCHAR | Rank of the identification |
+
+Taxon rank distribution: `UNRANKED` (56%), `FAMILY` (16%), `SPECIES` (8%), `GENUS` (7%), `ORDER` (6%), and higher ranks.
+
+The key analytical unit is `nucleotidesequenceid`: the same sequence can appear multiple times (once per dataset that contains it), potentially with different taxonomic annotations.
+
+## Tooling
+
+- **DuckDB** — primary tool for all data analysis; use the CLI (`duckdb`) or in-process via Python (`import duckdb`)
+- Parquet files are queried directly — no import step needed
+
+## Conventions
+
+- Query files go in `queries/` (`.sql` extension)
+- Analysis scripts go in `analysis/` (Python preferred)
+- Results/outputs go in `output/` (CSV or Parquet)
+- Keep queries self-contained and runnable from the repo root, e.g.:  
+  `duckdb -c "SELECT ... FROM 'small_dataset.parquet' ..."`
+
+## Key analytical questions
+
+1. For sequences annotated by multiple datasets, how often do the taxonomic annotations agree?
+2. What is the distribution of annotation depth (rank reached) per sequence?
+3. Can we define a consensus or "best" annotation for each unique sequence, and by what rules?
