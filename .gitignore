@@ -1,2 +1,3 @@
 *.parquet
 !small_dataset.parquet
+!top100_distinct_families.parquet
