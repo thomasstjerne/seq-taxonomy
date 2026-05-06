@@ -9,7 +9,12 @@ This directory is excluded from git — each collaborator must download the file
 
 **Source:** https://mitofish.aori.u-tokyo.ac.jp/download
 
-Download the following two files and place them in `source-data/mitofish/`:
+```bash
+curl -O https://mitofish.aori.u-tokyo.ac.jp/download/fullseq/2026/04/mitofishdb.fa.gz
+curl -O https://mitofish.aori.u-tokyo.ac.jp/download/tables/2026/04/tables.tar
+```
+
+Place both files in `source-data/mitofish/`.
 
 | File | Description |
 | --- | --- |
@@ -20,34 +25,33 @@ Download the following two files and place them in `source-data/mitofish/`:
 
 ## NBDL — National Biodiversity DNA Library (Australia)
 
-**Source:** https://www.gbif-test.org/dataset/3baf1ede-693d-4b22-b53e-255409d501f1/download
-
-On the dataset page, select **Source Archive** to download the Darwin Core archive.
-Place the file in `source-data/nbdl/`:
+```bash
+curl -o source-data/nbdl/nbdl.zip https://labs.gbif.org/~tsjeppesen/nbdl.zip
+```
 
 | File | Description |
 | --- | --- |
 | `nbdl.zip` | Darwin Core archive containing `dna.tsv` (sequences) and `occurrence.tsv` (occurrence metadata). |
 
-To inspect contents:
-```bash
-unzip -l source-data/nbdl/nbdl.zip
-```
-
 ---
 
 ## MIDORI2
 
-**Source:** https://www.reference-midori.info/download.php
+```bash
+curl -O https://www.reference-midori.info/download/Databases/GenBank269_2025-12-09/BLAST/uniq/fasta/MIDORI2_UNIQ_NUC_GB269_srRNA_BLAST.fasta.zip
+```
 
-Navigate to **BLAST → UNIQ → srRNA** and download the latest GenBank release.
-Place the directory in `source-data/midori2/`:
+Place the file in `source-data/midori2/` and unzip it:
+
+```bash
+unzip MIDORI2_UNIQ_NUC_GB269_srRNA_BLAST.fasta.zip -d source-data/midori2/
+```
 
 | File | Description |
 | --- | --- |
 | `MIDORI2_UNIQ_NUC_GB269_srRNA_BLAST/MIDORI2_UNIQ_NUC_GB269_srRNA_BLAST.fasta` | Unique nucleotide sequences for small subunit rRNA (12S for vertebrates), GenBank release 269. Headers encode full NCBI taxonomy: `>accession###rank_taxid;...`. |
 
-The version number (`GB269`) will increment with new GenBank releases — download the latest available.
+The version number (`GB269`) will increment with new GenBank releases — check https://www.reference-midori.info/download.php for the latest.
 
 ---
 
