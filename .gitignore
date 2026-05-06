@@ -1,3 +1,8 @@
 *.parquet
 !small_dataset.parquet
 !top100_distinct_families.parquet
+
+source-data/
+!source-data/README.md
+output/fasta/
+.DS_Store
