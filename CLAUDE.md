@@ -36,10 +36,10 @@ Requires: `yq` (v4), `vsearch`, `curl`, `python3`, `duckdb`, `pandas`, `openpyxl
 
 ### Normalised FASTA header format
 
-All conversion scripts produce the same 15-field pipe-separated header:
+All conversion scripts produce the same 23-field pipe-separated header:
 
 ```
->ID|accessionNumber|scientificName|decimalLatitude|decimalLongitude|typeStatus|catalogueNumber|identifiedBy|taxonRank|country|locality|basisOfRecord|higherClassification|dataset|targetGene
+>ID|accessionNumber|scientificName|decimalLatitude|decimalLongitude|typeStatus|catalogueNumber|identifiedBy|taxonRank|country|locality|basisOfRecord|higherClassification|dataset|targetGene|domain|kingdom|phylum|class|order|family|genus|species
 ```
 
 ### Conversion scripts
@@ -60,6 +60,64 @@ Each script in `analysis/` handles one source format:
 
 - UNITE official URL is blocked behind a user-agreement popup; a temporary mirror is in use — see comment in `datasets.yaml`
 - `refseq_its` version is unrecorded
+
+## Taxonomic annotation pipeline
+
+This pipeline queries the GBIF sequence data, runs it against the reference UDB, and produces annotated Parquet output for analysis.
+
+### 1. Start the vsearch server
+
+vsearch must be running in server mode before any annotation work:
+
+```bash
+vsearch --threads 8 --usearch_global_server \
+  --db output/fasta/gbif_dna_taxonomy_annotation.udb \
+  --id 0.9 --query_cov 0.5 \
+  --maxaccepts 1000 --maxrejects 1000 --maxhits 100 \
+  --port 8000 --temp_file_path ~/temp-vsearch
+```
+
+### 2. Start the Node.js proxy server
+
+The proxy parses vsearch output and returns structured JSON:
+
+```bash
+cd node-server && npm start
+# Listens on http://localhost:3000 by default
+# Override with PORT=XXXX or VSEARCH_URL=http://... environment variables
+```
+
+The proxy exposes `POST /search/batch?outfmt=blast6out|alnout` — accepts a FASTA body, forwards to vsearch, parses the 23-field headers, and returns one best-match object per query ID (selected by `pickBestMatch.mjs`).
+
+### 3. Create a query FASTA
+
+Extract sequences from the GBIF dataset by filtering `trino_joined.parquet` and joining to `trino_normalised_sequences.parquet`:
+
+```bash
+python3 analysis/query_to_fasta.py <name> --where "<SQL condition>"
+
+# Examples:
+python3 analysis/query_to_fasta.py musca --where "genus = 'Musca'"
+python3 analysis/query_to_fasta.py diptera --where "\"order\" = 'Diptera'"
+```
+
+Output: `tests/input/<name>.fasta`
+
+### 4. Annotate and write Parquet
+
+Send the FASTA to the proxy in batches of 100, collect best matches, and write results:
+
+```bash
+python3 analysis/annotate_sequences.py tests/input/<name>.fasta
+# Output: output/<name>_annotated.parquet
+
+# Options:
+#   --output path/to/output.parquet
+#   --server http://localhost:3000
+#   --batch-size 100
+```
+
+The output Parquet has 35 columns: `queryId` + all 23 reference header fields + `identity`, `alignmentLength`, `mismatches`, `gapOpenings`, `qstart`, `qend`, `sstart`, `send`, `evalue`, `bitScore`, `qcovs`.
 
 ## GBIF annotation data
 
