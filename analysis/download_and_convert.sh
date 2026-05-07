@@ -10,6 +10,7 @@
 #   bash analysis/download_and_convert.sh gtdb pr2                 # selected datasets
 #   bash analysis/download_and_convert.sh --download-only          # download + prepare only
 #   bash analysis/download_and_convert.sh --convert-only           # convert only (skip download)
+#   bash analysis/download_and_convert.sh --skip-udb               # skip the final UDB build
 #   bash analysis/download_and_convert.sh --convert-only gtdb pr2  # flags and filters can combine
 #   bash analysis/download_and_convert.sh --list                   # print available datasets
 #
@@ -32,12 +33,14 @@ fi
 # ── argument parsing ──────────────────────────────────────────────────────────
 DO_DOWNLOAD=true
 DO_CONVERT=true
+DO_UDB=true
 REQUESTED=""   # colon-delimited list of requested short_names, empty = all
 
 for arg in "$@"; do
     case "$arg" in
         --download-only) DO_CONVERT=false ;;
         --convert-only)  DO_DOWNLOAD=false ;;
+        --skip-udb)      DO_UDB=false ;;
         --list|--help)   : ;;  # handled below
         -*) echo "Unknown flag: $arg" >&2; exit 1 ;;
         *)  REQUESTED="$REQUESTED:$arg:" ;;
@@ -147,14 +150,16 @@ if [[ "$DO_CONVERT" == true ]]; then
     echo "  Done — $COUNT sequences written to $COMBINED"
 
     # ── build vsearch UDB index ───────────────────────────────────────────────
-    echo ""
-    echo "════════════════════════════════════════"
-    echo "  Building vsearch UDB"
-    echo "════════════════════════════════════════"
-    UDB="output/fasta/gbif_dna_taxonomy_annotation.udb"
-    LOG="output/fasta/gbif_dna_taxonomy_annotation.log"
-    vsearch --makeudb_usearch "$COMBINED" --output "$UDB" --log "$LOG"
-    echo "  Done — $UDB"
+    if [[ "$DO_UDB" == true ]]; then
+        echo ""
+        echo "════════════════════════════════════════"
+        echo "  Building vsearch UDB"
+        echo "════════════════════════════════════════"
+        UDB="output/fasta/gbif_dna_taxonomy_annotation.udb"
+        LOG="output/fasta/gbif_dna_taxonomy_annotation.log"
+        vsearch --makeudb_usearch "$COMBINED" --output "$UDB" --log "$LOG"
+        echo "  Done — $UDB"
+    fi
 fi
 
 echo ""

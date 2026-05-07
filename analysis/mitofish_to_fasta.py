@@ -115,6 +115,11 @@ def load_taxonomy(tables_dir: Path, accessions: set[str]) -> dict[str, dict]:
             "scientificName":       sci_name.replace(" ", "_"),
             "taxonRank":            taxon_rank,
             "higherClassification": hc,
+            "class":                ranks.get("class", "").replace(" ", "_"),
+            "order":                ranks.get("order", "").replace(" ", "_"),
+            "family":               ranks.get("family", "").replace(" ", "_"),
+            "genus":                ranks.get("genus", "").replace(" ", "_"),
+            "species":              ranks.get("species", "").replace(" ", "_"),
         }
 
     return result
@@ -137,6 +142,14 @@ def build_header(accession: str, tax: dict, dataset: str, target_gene: str) -> s
         tax.get("higherClassification", ""),
         dataset,
         target_gene,
+        "Eukaryota",                            # domain
+        "Animalia",                             # kingdom
+        "Chordata",                             # phylum
+        tax.get("class", ""),
+        tax.get("order", ""),
+        tax.get("family", ""),
+        tax.get("genus", ""),
+        tax.get("species", ""),
     ]
     return "|".join(fields)
 

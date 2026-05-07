@@ -121,6 +121,13 @@ def split_country(gb_country) -> tuple[str, str]:
     return country, locality
 
 
+def get_rank_field(row, field: str) -> str:
+    val = clean_taxon(row.get(field, ""))
+    if not val or "_X" in val:
+        return ""
+    return sanitize(val)
+
+
 def build_header(row, dataset: str, target_gene: str) -> str:
     taxon_rank, scientific_name = get_taxon_rank_and_name(row)
     country, locality           = split_country(row.get("gb_country"))
@@ -141,6 +148,14 @@ def build_header(row, dataset: str, target_gene: str) -> str:
         get_higher_classification(row),
         dataset,
         target_gene,
+        get_rank_field(row, "domain"),
+        get_rank_field(row, "supergroup"),          # supergroup → kingdom
+        get_rank_field(row, "division"),            # division → phylum
+        get_rank_field(row, "class"),
+        get_rank_field(row, "order"),
+        get_rank_field(row, "family"),
+        get_rank_field(row, "genus"),
+        get_rank_field(row, "species"),
     ]
     return "|".join(fields)
 

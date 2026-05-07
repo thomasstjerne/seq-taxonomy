@@ -81,9 +81,13 @@ def build_header(sample_id: str, bin_id: str, tax: dict, dataset: str, target_ge
     scientific_name        = get_scientific_name(tax, taxon_rank)
     higher_classification  = get_higher_classification(tax)
 
+    def rank(field: str) -> str:
+        val = tax.get(field, "")
+        return sanitize(val) if val and val != "None" else ""
+
     fields = [
-        f"{sample_id}|{bin_id}",    # ID — preserves full original header
-        sample_id,                   # accessionNumber — BOLD process ID
+        sample_id,
+        sample_id,
         scientific_name,
         "",                          # decimalLatitude
         "",                          # decimalLongitude
@@ -97,6 +101,14 @@ def build_header(sample_id: str, bin_id: str, tax: dict, dataset: str, target_ge
         higher_classification,
         dataset,
         target_gene,
+        "",                          # domain
+        rank("kingdom"),
+        rank("phylum"),
+        rank("class"),
+        rank("order"),
+        rank("family"),
+        rank("genus"),
+        rank("species"),
     ]
     return "|".join(fields)
 

@@ -80,9 +80,9 @@ def get_higher_classification(ranks: dict[str, str]) -> str:
     return ";".join(sanitize(ranks[r]) for r in RANK_ORDER if r in ranks)
 
 
-def parse_header(line: str) -> tuple[str, str, str, str, str, str]:
+def parse_header(line: str) -> tuple[str, str, str, str, str, str, dict]:
     """
-    Returns: sh_id, accession, scientific_name, taxon_rank, higher_classification, sh_type
+    Returns: sh_id, accession, scientific_name, taxon_rank, higher_classification, sh_type, ranks
     """
     raw = line.lstrip(">").strip()
     parts = raw.split("|")
@@ -96,11 +96,14 @@ def parse_header(line: str) -> tuple[str, str, str, str, str, str]:
     scientific_name, taxon_rank   = get_scientific_name_and_rank(ranks)
     higher_classification         = get_higher_classification(ranks)
 
-    return sh_id, accession, scientific_name, taxon_rank, higher_classification, sh_type
+    return sh_id, accession, scientific_name, taxon_rank, higher_classification, sh_type, ranks
 
 
 def build_header(sh_id, accession, scientific_name, taxon_rank,
-                 higher_classification, dataset, target_gene) -> str:
+                 higher_classification, ranks, dataset, target_gene) -> str:
+    def r(rank: str) -> str:
+        return sanitize(ranks.get(rank, ""))
+
     fields = [
         sh_id,
         accession,
@@ -117,6 +120,14 @@ def build_header(sh_id, accession, scientific_name, taxon_rank,
         higher_classification,
         dataset,
         target_gene,
+        "",           # domain
+        r("kingdom"),
+        r("phylum"),
+        r("class"),
+        r("order"),
+        r("family"),
+        r("genus"),
+        r("species"),
     ]
     return "|".join(fields)
 
@@ -144,13 +155,14 @@ def main():
          open(output_path, "w", encoding="utf-8") as out:
 
         sh_id = accession = scientific_name = taxon_rank = higher_classification = ""
+        cur_ranks: dict = {}
         seq_lines = []
 
         def flush():
             nonlocal written
             if sh_id and seq_lines:
                 header = build_header(sh_id, accession, scientific_name, taxon_rank,
-                                      higher_classification, args.dataset, target_gene)
+                                      higher_classification, cur_ranks, args.dataset, target_gene)
                 out.write(f">{header}\n{''.join(seq_lines).upper()}\n")
                 written += 1
 
@@ -159,7 +171,7 @@ def main():
             if line.startswith(">"):
                 flush()
                 seq_lines = []
-                sh_id, accession, scientific_name, taxon_rank, higher_classification, _ = \
+                sh_id, accession, scientific_name, taxon_rank, higher_classification, _, cur_ranks = \
                     parse_header(line)
             else:
                 seq_lines.append(line.strip())

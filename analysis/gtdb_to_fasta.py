@@ -110,6 +110,10 @@ def build_header(seq_id: str, accession: str, ranks: dict[str, str],
                  dataset: str, target_gene: str) -> str:
     scientific_name, taxon_rank = get_scientific_name_and_rank(ranks)
     higher_classification       = get_higher_classification(ranks)
+
+    def r(rank: str) -> str:
+        return sanitize(ranks.get(rank, ""))
+
     fields = [
         seq_id,
         accession,
@@ -126,6 +130,14 @@ def build_header(seq_id: str, accession: str, ranks: dict[str, str],
         higher_classification,
         dataset,
         target_gene,
+        r("domain"),
+        "",           # kingdom (not in GTDB)
+        r("phylum"),
+        r("class"),
+        r("order"),
+        r("family"),
+        r("genus"),
+        r("species"),
     ]
     return "|".join(fields)
 

@@ -12,7 +12,9 @@ supported. Header presence is auto-detected from the first row.
 Header format (pipe-separated):
   ID | accessionNumber | scientificName | decimalLatitude | decimalLongitude |
   typeStatus | catalogueNumber | identifiedBy | taxonRank | country | locality |
-  basisOfRecord | higherClassification | dataset | targetGene
+  basisOfRecord | higherClassification | dataset | targetGene |
+  domain | kingdom | phylum | class | order | family | genus | species |
+  domain | kingdom | phylum | class | order | family | genus | species
 
 Usage:
     python3 analysis/dwc_to_fasta.py <dwc_dir> <dataset_shortname> --target-gene 12s
@@ -100,6 +102,17 @@ def build_higher_classification(row: dict) -> str:
     return ";".join(parts)
 
 
+def get_species(row: dict) -> str:
+    genus    = row.get("genus", "").strip()
+    specific = row.get("specificEpiphet", "").strip()
+    sci      = row.get("scientificName", "").strip()
+    if genus and specific:
+        return sanitize(f"{genus} {specific}")
+    if genus and sci and len(sci.split()) >= 2 and sci.startswith(genus):
+        return sanitize(" ".join(sci.split()[:2]))
+    return ""
+
+
 def load_sequences(dna_path: Path, target_gene: str) -> dict[str, str]:
     sequences: dict[str, str] = {}
     with open(dna_path, newline="", encoding="utf-8") as f:
@@ -147,6 +160,14 @@ def build_header(occ: dict, seq_id: str, dataset: str, target_gene: str) -> str:
         sanitize(build_higher_classification(occ)),
         dataset,
         target_gene,
+        "",                                       # domain
+        sanitize(occ.get("kingdom", "")),
+        sanitize(occ.get("phylum", "")),
+        sanitize(occ.get("class", "")),
+        sanitize(occ.get("order", "")),
+        sanitize(occ.get("family", "")),
+        sanitize(occ.get("genus", "")),
+        get_species(occ),
     ]
     return "|".join(fields)
 
