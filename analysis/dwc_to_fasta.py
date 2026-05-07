@@ -1,9 +1,13 @@
 """
 Convert a Darwin Core archive to a normalised FASTA file.
 
-Reads dna.tsv and occurrence.tsv from an extracted DwC archive and writes a
-FASTA file whose headers contain the fields defined in tsvHeaders.js plus
-dataset shortname and target gene.
+Reads dna.tsv/dna.txt and occurrence.tsv/occurrence.txt from an extracted DwC
+archive and writes a FASTA file whose headers contain the fields defined in
+tsvHeaders.js plus dataset shortname and target gene.
+
+Both named-header archives (e.g. NBDL) and positional/headerless archives
+(e.g. refSeq ITS, following the standard DwC meta.xml field indices) are
+supported. Header presence is auto-detected from the first row.
 
 Header format (pipe-separated):
   ID | accessionNumber | scientificName | decimalLatitude | decimalLongitude |
@@ -13,8 +17,9 @@ Header format (pipe-separated):
 Usage:
     python3 analysis/dwc_to_fasta.py <dwc_dir> <dataset_shortname> --target-gene 12s
 
-Example:
+Examples:
     python3 analysis/dwc_to_fasta.py source-data/nbdl/extracted nbdl_12s --target-gene 12s
+    python3 analysis/dwc_to_fasta.py source-data/refSeq_its refseq_its --target-gene its
 """
 
 import argparse
@@ -29,6 +34,20 @@ DNA_ID       = 0
 DNA_GENE     = 1
 DNA_SEQUENCE = 2
 
+# Standard DwC column names for archives without a header row,
+# ordered by meta.xml field index (0 = core id).
+DWC_STANDARD_HEADERS = [
+    "id", "occurrenceID", "scientificName", "higherClassification",
+    "typeStatus", "decimalLatitude", "decimalLongitude", "country", "locality",
+    "eventDate", "recordedBy", "identifiedBy", "catalogNumber",
+    "associatedReferences", "basisOfRecord", "occurrenceRemarks",
+    "taxonID", "taxonConceptID", "associatedSequences", "otherCatalogNumbers",
+    "kingdom", "phylum", "class", "order", "family", "genus", "institutionCode",
+]
+
+# First-column values that indicate a header row is present
+HEADER_SENTINEL = {"occurrenceId", "occurrenceID", "id", "ID", "coreid", "coreId"}
+
 
 def sanitize(value: str) -> str:
     """ASCII-safe, whitespace→underscore, for BLAST/vsearch header compatibility."""
@@ -42,7 +61,11 @@ def sanitize(value: str) -> str:
 def get_taxon_rank(row: dict) -> str:
     genus    = row.get("genus", "").strip()
     specific = row.get("specificEpiphet", "").strip()
+    sci      = row.get("scientificName", "").strip()
+    # Species: explicit specificEpiphet, or scientificName has ≥2 words starting with genus
     if genus and specific:
+        return "species"
+    if genus and sci and len(sci.split()) >= 2 and sci.startswith(genus):
         return "species"
     if genus:
         return "genus"
@@ -68,8 +91,12 @@ def build_higher_classification(row: dict) -> str:
             parts.append(val)
     genus    = row.get("genus", "").strip()
     specific = row.get("specificEpiphet", "").strip()
+    sci      = row.get("scientificName", "").strip()
     if genus and specific:
         parts.append(f"{genus}_{specific}")
+    elif genus and sci and len(sci.split()) >= 2 and sci.startswith(genus):
+        # Derive species binomial from scientificName when specificEpiphet absent
+        parts.append("_".join(sci.split()[:2]))
     return ";".join(parts)
 
 
@@ -88,9 +115,16 @@ def load_sequences(dna_path: Path, target_gene: str) -> dict[str, str]:
 def load_occurrences(occ_path: Path) -> dict[str, dict]:
     occurrences: dict[str, dict] = {}
     with open(occ_path, newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f, delimiter="\t")
+        first_col = f.readline().split("\t")[0].strip()
+        f.seek(0)
+        if first_col in HEADER_SENTINEL:
+            reader = csv.DictReader(f, delimiter="\t")
+        else:
+            reader = csv.DictReader(f, fieldnames=DWC_STANDARD_HEADERS, delimiter="\t")
         for row in reader:
-            occ_id = row.get("occurrenceId", "").strip()
+            # Support both named-header archives and standard DwC positional archives
+            occ_id = (row.get("occurrenceId") or row.get("occurrenceID")
+                      or row.get("id") or "").strip()
             if occ_id:
                 occurrences[occ_id] = row
     return occurrences
@@ -128,12 +162,15 @@ def main():
     dwc_dir     = Path(args.dwc_dir)
     output_path = OUTPUT_DIR / f"{args.dataset}.fasta"
 
-    dna_path = dwc_dir / "dna.tsv"
-    occ_path = dwc_dir / "occurrence.tsv"
+    def find_file(stem: str) -> Path:
+        for ext in (".tsv", ".txt"):
+            p = dwc_dir / f"{stem}{ext}"
+            if p.exists():
+                return p
+        raise FileNotFoundError(f"Could not find {stem}.tsv or {stem}.txt in {dwc_dir}")
 
-    for p in (dna_path, occ_path):
-        if not p.exists():
-            raise FileNotFoundError(f"Expected file not found: {p}")
+    dna_path = find_file("dna")
+    occ_path = find_file("occurrence")
 
     OUTPUT_DIR.mkdir(exist_ok=True)
 

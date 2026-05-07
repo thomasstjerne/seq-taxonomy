@@ -8,7 +8,7 @@
 set -euo pipefail
 
 NBDL_DIR="source-data/nbdl/extracted"
-MIDORI2_FASTA="source-data/midori2/MIDORI2_UNIQ_NUC_GB269_srRNA_BLAST/MIDORI2_UNIQ_NUC_GB269_srRNA_BLAST.fasta"
+MIDORI2_FASTA="source-data/midori2/MIDORI2_UNIQ_NUC_GB269_srRNA_BLAST.fasta"
 MITOFISH_FASTA="source-data/mitofish/mitofishdb.fa.gz"
 MITOFISH_TABLES="source-data/mitofish/tables"
 OUTPUT="output/fasta/testdata_12s.fasta"

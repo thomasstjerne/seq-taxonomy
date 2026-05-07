@@ -1,0 +1,153 @@
+# datasets.yaml
+# Master configuration for all reference database sources.
+#
+# Used by analysis/download_and_convert.sh to:
+#   - create source-data/<short_name>/
+#   - download all endpoints (skips files already present)
+#   - run prepare_cmd once (skipped if prepare_sentinel path already exists)
+#   - run convert_cmd to produce output/fasta/<short_name>_<target_gene>.fasta
+#
+# Update endpoint URLs when new database versions are released.
+
+datasets:
+
+  - short_name: mitofish
+    version: "2026-04"
+    target_gene: 12s
+    taxonomic_scope: Fish (Actinopterygii, Chondrichthyes)
+    citation: >
+      Sato Y et al. (2013) MitoFish and MitoAnnotator: A mitochondrial genome database
+      of fish with an accurate and automatic annotation pipeline.
+      Mol. Biol. Evol. 30(11):2531-2540. https://mitofish.aori.u-tokyo.ac.jp
+    endpoints:
+      # URL paths include a release date — update when a new version is published.
+      - https://mitofish.aori.u-tokyo.ac.jp/download/fullseq/2026/04/mitofishdb.fa.gz
+      - https://mitofish.aori.u-tokyo.ac.jp/download/tables/2026/04/tables.tar
+    prepare_cmd: mkdir -p source-data/mitofish/tables && tar -xf source-data/mitofish/tables.tar -C source-data/mitofish/tables
+    prepare_sentinel: source-data/mitofish/tables
+    convert_cmd: python3 analysis/mitofish_to_fasta.py source-data/mitofish/mitofishdb.fa.gz source-data/mitofish/tables mitofish_12s --target-gene 12s
+
+  - short_name: nbdl
+    version: "2024"   # no formal version; update if the archive is refreshed
+    target_gene: 12s
+    taxonomic_scope: Australian fauna (all groups)
+    citation: >
+      National Biodiversity DNA Library (NBDL).
+      https://www.ala.org.au/nbdl
+    endpoints:
+      - https://labs.gbif.org/~tsjeppesen/nbdl.zip
+    prepare_cmd: unzip -n source-data/nbdl/nbdl.zip -d source-data/nbdl/extracted
+    prepare_sentinel: source-data/nbdl/extracted
+    convert_cmd: python3 analysis/dwc_to_fasta.py source-data/nbdl/extracted nbdl_12s --target-gene 12s
+
+  - short_name: midori2
+    version: GB269
+    target_gene: 12s
+    taxonomic_scope: Vertebrates (12S rRNA, GenBank-derived)
+    citation: >
+      Machida RJ et al. (2017) MIDORI: a new reference database for the
+      identification of organisms using cytoplasmic gene sequences.
+      Mol. Ecol. Resour. 17(4):e12-e15. https://www.reference-midori.info
+    curl_flags: --insecure  # reference-midori.info has an invalid SSL certificate
+    endpoints:
+      # URL path includes GenBank release and date — update when a new version is published.
+      - https://www.reference-midori.info/download/Databases/GenBank269_2025-12-09/BLAST/uniq/fasta/MIDORI2_UNIQ_NUC_GB269_srRNA_BLAST.fasta.zip
+    prepare_cmd: unzip -n source-data/midori2/MIDORI2_UNIQ_NUC_GB269_srRNA_BLAST.fasta.zip -d source-data/midori2/
+    prepare_sentinel: source-data/midori2/MIDORI2_UNIQ_NUC_GB269_srRNA_BLAST.fasta
+    convert_cmd: python3 analysis/midori2_to_fasta.py source-data/midori2/MIDORI2_UNIQ_NUC_GB269_srRNA_BLAST.fasta midori2_12s --target-gene 12s
+
+  - short_name: pr2
+    version: "5.1.0"
+    target_gene: 18s
+    taxonomic_scope: Protists and algae (18S rRNA)
+    citation: >
+      Guillou L et al. (2013) The Protist Ribosomal Reference database (PR2):
+      a catalogue of unicellular eukaryote Small Sub-Unit rRNA sequences.
+      Nucleic Acids Res. 41(D1):D597-D604. https://pr2-database.org
+    endpoints:
+      # Update version tag when a new PR2 release is available.
+      - https://github.com/pr2database/pr2database/releases/download/v5.1.0.0/pr2_version_5.1.0_merged.xlsx
+    convert_cmd: python3 analysis/pr2_to_fasta.py source-data/pr2/pr2_version_5.1.0_merged.xlsx pr2_18s --target-gene 18s
+
+  - short_name: boldistilled
+    version: Apr2026
+    target_gene: coi
+    taxonomic_scope: Animals (COI barcode, BOLD BIN clusters)
+    citation: >
+      BOLDistilled: a curated and deduplicated reference database derived from
+      BOLD Systems. https://www.boldsystems.org
+    endpoints:
+      - https://us-sea-1.linodeobjects.com/boldistilled/source.zip
+    prepare_cmd: unzip -n source-data/boldistilled/source.zip -d source-data/boldistilled/
+    prepare_sentinel: source-data/boldistilled/source/BOLDistilled_COI_Apr2026_SEQUENCES.fasta
+    convert_cmd: python3 analysis/boldistilled_to_fasta.py source-data/boldistilled/source/BOLDistilled_COI_Apr2026_SEQUENCES.fasta source-data/boldistilled/source/BOLDistilled_COI_Apr2026_TAXONOMY.tsv boldistilled_coi --target-gene coi
+
+  - short_name: unite
+    version: "10.0"
+    target_gene: its
+    taxonomic_scope: Fungi and other eukaryotes (ITS)
+    citation: >
+      UNITE Community (2025). UNITE general FASTA release for eukaryotes.
+      Version 19.02.2025. UNITE Community. https://doi.org/10.15156/BIO/2959336
+    endpoints:
+      # TODO: replace with official URL from https://unite.ut.ee/repository.php once
+      # the user-agreement redirect is resolved. Temporary mirror used in the meantime.
+      - https://labs.gbif.org/~tsjeppesen/sh_general_release_s_all_19.02.2025.tgz
+    prepare_cmd: tar -xzf source-data/unite/sh_general_release_s_all_19.02.2025.tgz -C source-data/unite/
+    prepare_sentinel: source-data/unite/sh_general_release_dynamic_s_all_19.02.2025.fasta
+    convert_cmd: python3 analysis/unite_to_fasta.py source-data/unite/sh_general_release_dynamic_s_all_19.02.2025.fasta unite_its --target-gene its
+
+  - short_name: refSeq_arc_16s
+    version: "2026-05-01"
+    target_gene: 16s
+    taxonomic_scope: Archaea (16S rRNA, NCBI RefSeq)
+    citation: >
+      NCBI RefSeq targeted loci project: 16S ribosomal RNA sequences (Archaea).
+      BioProject PRJNA33317. https://www.ncbi.nlm.nih.gov/bioproject/PRJNA33317
+    endpoints:
+      - https://hosted-datasets.gbif.org/ncbi/PRJNA33317.zip
+    prepare_cmd: unzip -n source-data/refSeq_arc_16s/PRJNA33317.zip -d source-data/refSeq_arc_16s/extracted
+    prepare_sentinel: source-data/refSeq_arc_16s/extracted
+    convert_cmd: python3 analysis/dwc_to_fasta.py source-data/refSeq_arc_16s/extracted refSeq_arc_16s --target-gene 16s
+
+  - short_name: refSeq_bac_16s
+    version: "2026-05-01"
+    target_gene: 16s
+    taxonomic_scope: Bacteria (16S rRNA, NCBI RefSeq)
+    citation: >
+      NCBI RefSeq targeted loci project: 16S ribosomal RNA sequences (Bacteria).
+      BioProject PRJNA33175. https://www.ncbi.nlm.nih.gov/bioproject/PRJNA33175
+    endpoints:
+      - https://hosted-datasets.gbif.org/ncbi/PRJNA33175.zip
+    prepare_cmd: unzip -n source-data/refSeq_bac_16s/PRJNA33175.zip -d source-data/refSeq_bac_16s/extracted
+    prepare_sentinel: source-data/refSeq_bac_16s/extracted
+    convert_cmd: python3 analysis/dwc_to_fasta.py source-data/refSeq_bac_16s/extracted refSeq_bac_16s --target-gene 16s
+
+  - short_name: refseq_its
+    version: null   # TODO: record version when download URL is confirmed
+    target_gene: its
+    taxonomic_scope: Fungi and land plants (ITS, NCBI RefSeq)
+    citation: >
+      NCBI RefSeq ITS sequences, distributed as a Darwin Core Archive via GBIF.
+      https://www.ncbi.nlm.nih.gov/refseq
+    endpoints:
+      - https://hosted-datasets.gbif.org/ncbi/PRJNA177353.zip
+    prepare_cmd: unzip -n source-data/refseq_its/PRJNA177353.zip -d source-data/refseq_its/extracted
+    prepare_sentinel: source-data/refseq_its/extracted
+    convert_cmd: python3 analysis/dwc_to_fasta.py source-data/refseq_its/extracted refseq_its --target-gene its
+
+  - short_name: gtdb
+    version: v232
+    target_gene: 16s
+    taxonomic_scope: Bacteria and Archaea (16S SSU rRNA)
+    citation: >
+      Parks DH et al. (2022) GTDB: an ongoing census of bacterial and archaeal
+      diversity through a phylogenetically consistent, rank normalised and complete
+      genome-based taxonomy. Nucleic Acids Res. 50(D1):D785-D794.
+      https://gtdb.ecogenomic.org
+    endpoints:
+      - https://data.gtdb.ecogenomic.org/releases/latest/genomic_files_reps/bac120_ssu_reps.fna.gz
+      - https://data.gtdb.ecogenomic.org/releases/latest/genomic_files_reps/ar53_ssu_reps.fna.gz
+      - https://data.gtdb.ecogenomic.org/releases/latest/bac120_taxonomy.tsv
+      - https://data.gtdb.ecogenomic.org/releases/latest/ar53_taxonomy.tsv
+    convert_cmd: python3 analysis/gtdb_to_fasta.py source-data/gtdb gtdb_16s --target-gene 16s
