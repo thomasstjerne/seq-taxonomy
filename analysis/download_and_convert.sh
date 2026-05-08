@@ -38,6 +38,7 @@ DO_CONVERT=true
 DO_UDB=true
 REQUESTED=""   # colon-delimited list of requested short_names, empty = all
 OUTPUT_NAME="gbif_dna_taxonomy_annotation"
+DATASET_FASTAS=()  # FASTAs produced by this run, in order
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -143,6 +144,9 @@ for i in $(seq 0 $((count - 1))); do
         convert_cmd=$(yq ".datasets[$i].convert_cmd" "$CONFIG")
         echo "  Converting …"
         eval "$convert_cmd"
+        # Derive the output FASTA path: last positional argument before --target-gene
+        fasta_stem=$(echo "$convert_cmd" | sed 's/--target-gene.*//' | awk '{print $NF}')
+        DATASET_FASTAS+=("output/fasta/${fasta_stem}.fasta")
     fi
 
 done
@@ -155,12 +159,7 @@ if [[ "$DO_CONVERT" == true ]]; then
     echo "  Concatenating all FASTAs"
     echo "════════════════════════════════════════"
 
-    # Collect all per-dataset FASTAs, excluding the combined output itself
-    parts=()
-    for f in output/fasta/*.fasta; do
-        [[ "$f" == "$COMBINED" ]] && continue
-        parts+=("$f")
-    done
+    parts=("${DATASET_FASTAS[@]}")
 
     cat "${parts[@]}" > "$COMBINED"
     COUNT=$(grep -c "^>" "$COMBINED")
