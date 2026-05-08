@@ -13,6 +13,8 @@
 #   bash analysis/download_and_convert.sh --skip-udb               # skip the final UDB build
 #   bash analysis/download_and_convert.sh --convert-only gtdb pr2  # flags and filters can combine
 #   bash analysis/download_and_convert.sh --list                   # print available datasets
+#   bash analysis/download_and_convert.sh --config small12s.yaml   # use a custom config file
+#   bash analysis/download_and_convert.sh --output-name small_12s  # set output FASTA/UDB base name
 #
 # Requirements: yq v4  (brew install yq)
 #               vsearch  (brew install vsearch)
@@ -35,16 +37,31 @@ DO_DOWNLOAD=true
 DO_CONVERT=true
 DO_UDB=true
 REQUESTED=""   # colon-delimited list of requested short_names, empty = all
+OUTPUT_NAME="gbif_dna_taxonomy_annotation"
 
-for arg in "$@"; do
-    case "$arg" in
+while [[ $# -gt 0 ]]; do
+    case "$1" in
         --download-only) DO_CONVERT=false ;;
         --convert-only)  DO_DOWNLOAD=false ;;
         --skip-udb)      DO_UDB=false ;;
         --list|--help)   : ;;  # handled below
-        -*) echo "Unknown flag: $arg" >&2; exit 1 ;;
-        *)  REQUESTED="$REQUESTED:$arg:" ;;
+        --config)
+            shift
+            [[ $# -eq 0 ]] && { echo "Error: --config requires a path argument" >&2; exit 1; }
+            CONFIG="$1"
+            # Resolve relative paths against repo root
+            [[ "$CONFIG" != /* ]] && CONFIG="$REPO_ROOT/$CONFIG"
+            [[ -f "$CONFIG" ]] || { echo "Error: config file not found: $CONFIG" >&2; exit 1; }
+            ;;
+        --output-name)
+            shift
+            [[ $# -eq 0 ]] && { echo "Error: --output-name requires a name argument" >&2; exit 1; }
+            OUTPUT_NAME="$1"
+            ;;
+        -*) echo "Unknown flag: $1" >&2; exit 1 ;;
+        *)  REQUESTED="$REQUESTED:$1:" ;;
     esac
+    shift
 done
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -132,7 +149,7 @@ done
 
 # ── concatenate all dataset FASTAs into one combined file ─────────────────────
 if [[ "$DO_CONVERT" == true ]]; then
-    COMBINED="output/fasta/gbif_dna_taxonomy_annotation.fasta"
+    COMBINED="output/fasta/${OUTPUT_NAME}.fasta"
     echo ""
     echo "════════════════════════════════════════"
     echo "  Concatenating all FASTAs"
@@ -155,8 +172,8 @@ if [[ "$DO_CONVERT" == true ]]; then
         echo "════════════════════════════════════════"
         echo "  Building vsearch UDB"
         echo "════════════════════════════════════════"
-        UDB="output/fasta/gbif_dna_taxonomy_annotation.udb"
-        LOG="output/fasta/gbif_dna_taxonomy_annotation.log"
+        UDB="output/fasta/${OUTPUT_NAME}.udb"
+        LOG="output/fasta/${OUTPUT_NAME}.log"
         vsearch --makeudb_usearch "$COMBINED" --output "$UDB" --log "$LOG"
         echo "  Done — $UDB"
     fi

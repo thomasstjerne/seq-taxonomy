@@ -19,11 +19,14 @@ All sources are defined in `datasets.yaml` (repo root). Each entry has: `short_n
 ### Running
 
 ```bash
-bash analysis/download_and_convert.sh                   # full pipeline
-bash analysis/download_and_convert.sh --download-only   # fetch only
-bash analysis/download_and_convert.sh --convert-only    # convert + index only
-bash analysis/download_and_convert.sh gtdb pr2          # selected datasets
-bash analysis/download_and_convert.sh --list            # show available datasets
+bash analysis/download_and_convert.sh                                        # full pipeline
+bash analysis/download_and_convert.sh --download-only                        # fetch only
+bash analysis/download_and_convert.sh --convert-only                         # convert + index only
+bash analysis/download_and_convert.sh gtdb pr2                               # selected datasets
+bash analysis/download_and_convert.sh --list                                 # show available datasets
+bash analysis/download_and_convert.sh --config small12s.yaml                 # use a custom config file
+bash analysis/download_and_convert.sh --output-name small_12s                # set output FASTA/UDB base name
+bash analysis/download_and_convert.sh --config small12s.yaml --output-name small_12s  # combine both
 ```
 
 Requires: `yq` (v4), `vsearch`, `curl`, `python3`, `duckdb`, `pandas`, `openpyxl`.

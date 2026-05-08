@@ -50,11 +50,14 @@ This will:
 ### Partial runs
 
 ```bash
-bash analysis/download_and_convert.sh --download-only          # fetch files only
-bash analysis/download_and_convert.sh --convert-only           # skip download, re-convert
-bash analysis/download_and_convert.sh gtdb pr2                 # selected datasets only
-bash analysis/download_and_convert.sh --convert-only gtdb pr2  # flags and filters combine
-bash analysis/download_and_convert.sh --list                   # show all datasets
+bash analysis/download_and_convert.sh --download-only                                  # fetch files only
+bash analysis/download_and_convert.sh --convert-only                                   # skip download, re-convert
+bash analysis/download_and_convert.sh gtdb pr2                                         # selected datasets only
+bash analysis/download_and_convert.sh --convert-only gtdb pr2                          # flags and filters combine
+bash analysis/download_and_convert.sh --list                                           # show all datasets
+bash analysis/download_and_convert.sh --config small12s.yaml                           # use a custom config file
+bash analysis/download_and_convert.sh --output-name small_12s                          # set output FASTA/UDB base name
+bash analysis/download_and_convert.sh --config small12s.yaml --output-name small_12s  # combine both
 ```
 
 ### Datasets

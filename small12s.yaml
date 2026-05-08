@@ -1,0 +1,49 @@
+# small12s.yaml
+# Subset of datasets.yaml containing 12S datasets only.
+
+datasets:
+
+  - short_name: mitofish
+    version: "2026-04"
+    target_gene: 12s
+    taxonomic_scope: Fish (Actinopterygii, Chondrichthyes)
+    citation: >
+      Sato Y et al. (2013) MitoFish and MitoAnnotator: A mitochondrial genome database
+      of fish with an accurate and automatic annotation pipeline.
+      Mol. Biol. Evol. 30(11):2531-2540. https://mitofish.aori.u-tokyo.ac.jp
+    endpoints:
+      # URL paths include a release date — update when a new version is published.
+      - https://mitofish.aori.u-tokyo.ac.jp/download/fullseq/2026/04/mitofishdb.fa.gz
+      - https://mitofish.aori.u-tokyo.ac.jp/download/tables/2026/04/tables.tar
+    prepare_cmd: mkdir -p source-data/mitofish/tables && tar -xf source-data/mitofish/tables.tar -C source-data/mitofish/tables
+    prepare_sentinel: source-data/mitofish/tables
+    convert_cmd: python3 analysis/mitofish_to_fasta.py source-data/mitofish/mitofishdb.fa.gz source-data/mitofish/tables mitofish_12s --target-gene 12s
+
+  - short_name: nbdl
+    version: "2024"
+    target_gene: 12s
+    taxonomic_scope: Australian fauna (all groups)
+    citation: >
+      National Biodiversity DNA Library (NBDL).
+      https://www.ala.org.au/nbdl
+    endpoints:
+      - https://labs.gbif.org/~tsjeppesen/nbdl.zip
+    prepare_cmd: unzip -n source-data/nbdl/nbdl.zip -d source-data/nbdl/extracted
+    prepare_sentinel: source-data/nbdl/extracted
+    convert_cmd: python3 analysis/dwc_to_fasta.py source-data/nbdl/extracted nbdl_12s --target-gene 12s
+
+  - short_name: midori2
+    version: GB269
+    target_gene: 12s
+    taxonomic_scope: Vertebrates (12S rRNA, GenBank-derived)
+    citation: >
+      Machida RJ et al. (2017) MIDORI: a new reference database for the
+      identification of organisms using cytoplasmic gene sequences.
+      Mol. Ecol. Resour. 17(4):e12-e15. https://www.reference-midori.info
+    curl_flags: --insecure  # reference-midori.info has an invalid SSL certificate
+    endpoints:
+      # URL path includes GenBank release and date — update when a new version is published.
+      - https://www.reference-midori.info/download/Databases/GenBank269_2025-12-09/BLAST/uniq/fasta/MIDORI2_UNIQ_NUC_GB269_srRNA_BLAST.fasta.zip
+    prepare_cmd: unzip -n source-data/midori2/MIDORI2_UNIQ_NUC_GB269_srRNA_BLAST.fasta.zip -d source-data/midori2/
+    prepare_sentinel: source-data/midori2/MIDORI2_UNIQ_NUC_GB269_srRNA_BLAST.fasta
+    convert_cmd: python3 analysis/midori2_to_fasta.py source-data/midori2/MIDORI2_UNIQ_NUC_GB269_srRNA_BLAST.fasta midori2_12s --target-gene 12s
