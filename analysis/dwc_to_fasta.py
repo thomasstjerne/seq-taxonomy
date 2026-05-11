@@ -113,14 +113,14 @@ def get_species(row: dict) -> str:
     return ""
 
 
-def load_sequences(dna_path: Path, target_gene: str) -> dict[str, str]:
+def load_sequences(dna_path: Path, filter_gene) -> dict[str, str]:
     sequences: dict[str, str] = {}
     with open(dna_path, newline="", encoding="utf-8") as f:
         reader = csv.reader(f, delimiter="\t")
         for row in reader:
             if len(row) < 3:
                 continue
-            if row[DNA_GENE].strip().lower() == target_gene.lower():
+            if filter_gene is None or row[DNA_GENE].strip().lower() == filter_gene:
                 sequences[row[DNA_ID].strip()] = row[DNA_SEQUENCE].strip().upper()
     return sequences
 
@@ -176,10 +176,12 @@ def main():
     parser = argparse.ArgumentParser(description="Convert a DwC archive to a normalised FASTA")
     parser.add_argument("dwc_dir",  help="Path to extracted DwC archive directory")
     parser.add_argument("dataset",  help="Short dataset name for FASTA headers (e.g. nbdl_12s)")
-    parser.add_argument("--target-gene", required=True, help="Target gene to extract (e.g. 12s)")
+    parser.add_argument("--target-gene", required=True, help="Vocabulary term for output FASTA headers (e.g. SSU_rRNA_12S_mitochondrial)")
+    parser.add_argument("--filter-gene", default=None, help="Value to match against the targetGene field in the DWC source (e.g. 12s); if omitted, all sequences are included")
     args = parser.parse_args()
 
-    target_gene = args.target_gene.lower()
+    target_gene = args.target_gene
+    filter_gene = args.filter_gene.lower() if args.filter_gene else None
     dwc_dir     = Path(args.dwc_dir)
     output_path = OUTPUT_DIR / f"{args.dataset}.fasta"
 
@@ -195,8 +197,9 @@ def main():
 
     OUTPUT_DIR.mkdir(exist_ok=True)
 
-    print(f"Loading sequences (target gene: {target_gene}) …")
-    sequences = load_sequences(dna_path, target_gene)
+    filter_desc = filter_gene if filter_gene else "all"
+    print(f"Loading sequences (filter gene: {filter_desc}, output label: {target_gene}) …")
+    sequences = load_sequences(dna_path, filter_gene)
     print(f"  {len(sequences):,} sequences found")
 
     print("Loading occurrences …")

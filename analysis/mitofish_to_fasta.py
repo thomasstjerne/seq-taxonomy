@@ -41,6 +41,7 @@ COMPLEMENT = str.maketrans("ACGTNacgtn", "TGCANtgcan")
 # Map user-supplied target gene label to the gene name used in seq_annotation
 GENE_NAME_MAP = {
     "12s": "12S_rRNA",
+    "ssu12smitochondrial": "12S_rRNA",
     "16s": "16S_rRNA",
     "coi": "COI",
 }
@@ -164,7 +165,7 @@ def main():
 
     fasta_path  = Path(args.fasta_gz)
     tables_dir  = Path(args.tables_dir)
-    target_gene = args.target_gene.lower()
+    target_gene = args.target_gene
     gene_name   = normalise_gene(target_gene)
     output_path = OUTPUT_DIR / f"{args.dataset}.fasta"
 

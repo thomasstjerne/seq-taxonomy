@@ -39,6 +39,7 @@ NEEDED_COLS = [
 # Map user target-gene label to PR2 gene column value
 GENE_NAME_MAP = {
     "18s": "18S_rRNA",
+    "ssu_rrna_18s_eukaryotic": "18S_rRNA",
     "16s": "16S_rRNA",
 }
 
@@ -168,7 +169,7 @@ def main():
     args = parser.parse_args()
 
     xlsx_path   = Path(args.xlsx_file)
-    target_gene = args.target_gene.lower()
+    target_gene = args.target_gene
     gene_name   = normalise_gene(target_gene)
     output_path = OUTPUT_DIR / f"{args.dataset}.fasta"
 
