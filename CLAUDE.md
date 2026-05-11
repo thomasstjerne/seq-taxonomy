@@ -16,6 +16,14 @@ The approach has two tracks:
 
 All sources are defined in `datasets.yaml` (repo root). Each entry has: `short_name`, `version`, `target_gene`, `taxonomic_scope`, `citation`, `endpoints`, optional `curl_flags`/`prepare_cmd`/`prepare_sentinel`, and `convert_cmd`.
 
+The `target_gene` value must be a concept name from the GBIF target_gene vocabulary:
+- Browse: https://registry.gbif.org/vocabulary/target_gene/concepts
+- API: https://api.gbif.org/v1/vocabularies/target_gene/concepts?limit=100
+
+Current mappings in use: `SSU_rRNA_12S_mitochondrial`, `SSU_rRNA_18S_eukaryotic`, `SSU_rRNA_16S_prokaryotic`, `COI`, `ITS_region`.
+
+Conversion scripts that filter source data by gene name (e.g. `dwc_to_fasta.py`) accept a separate `--filter-gene` argument for the value used to match records in the source file (e.g. `12s`, `16s`, `its`), keeping `--target-gene` strictly for the output FASTA header.
+
 ### Running
 
 ```bash
