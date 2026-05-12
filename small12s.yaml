@@ -5,7 +5,7 @@ datasets:
 
   - short_name: mitofish
     version: "2026-04"
-    target_gene: 12s
+    target_gene: SSU_rRNA_12S_mitochondrial
     taxonomic_scope: Fish (Actinopterygii, Chondrichthyes)
     citation: >
       Sato Y et al. (2013) MitoFish and MitoAnnotator: A mitochondrial genome database
@@ -21,7 +21,7 @@ datasets:
 
   - short_name: nbdl
     version: "2024"
-    target_gene: 12s
+    target_gene: SSU_rRNA_12S_mitochondrial
     taxonomic_scope: Australian fauna (all groups)
     citation: >
       National Biodiversity DNA Library (NBDL).
@@ -34,7 +34,7 @@ datasets:
 
   - short_name: midori2
     version: GB269
-    target_gene: 12s
+    target_gene: SSU_rRNA_12S_mitochondrial
     taxonomic_scope: Vertebrates (12S rRNA, GenBank-derived)
     citation: >
       Machida RJ et al. (2017) MIDORI: a new reference database for the
