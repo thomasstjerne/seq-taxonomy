@@ -6,15 +6,17 @@
 # more short_names as arguments to run only those datasets.
 #
 # Usage:
-#   bash analysis/download_and_convert.sh                          # download + convert all
-#   bash analysis/download_and_convert.sh gtdb pr2                 # selected datasets
-#   bash analysis/download_and_convert.sh --download-only          # download + prepare only
-#   bash analysis/download_and_convert.sh --convert-only           # convert only (skip download)
-#   bash analysis/download_and_convert.sh --skip-udb               # skip the final UDB build
-#   bash analysis/download_and_convert.sh --convert-only gtdb pr2  # flags and filters can combine
-#   bash analysis/download_and_convert.sh --list                   # print available datasets
-#   bash analysis/download_and_convert.sh --config small12s.yaml   # use a custom config file
-#   bash analysis/download_and_convert.sh --output-name small_12s  # set output FASTA/UDB base name
+#   bash analysis/download_and_convert.sh                                        # download + convert all
+#   bash analysis/download_and_convert.sh gtdb pr2                               # selected datasets
+#   bash analysis/download_and_convert.sh --download-only                        # download + prepare only
+#   bash analysis/download_and_convert.sh --convert-only                         # convert only (skip download)
+#   bash analysis/download_and_convert.sh --skip-udb                             # skip the final UDB build
+#   bash analysis/download_and_convert.sh --convert-only gtdb pr2                # flags and filters can combine
+#   bash analysis/download_and_convert.sh --list                                 # print available datasets
+#   bash analysis/download_and_convert.sh --config small12s.yaml                 # use a custom config file
+#   bash analysis/download_and_convert.sh --output-name small_12s                # set output FASTA/UDB base name
+#   bash analysis/download_and_convert.sh --source-dir /path/to/storage           # store source data on external storage
+#   bash analysis/download_and_convert.sh --output-dir /path/to/storage           # write FASTAs and UDB to external storage
 #
 # Requirements: yq v4  (brew install yq)
 #               vsearch  (brew install vsearch)
@@ -38,6 +40,8 @@ DO_CONVERT=true
 DO_UDB=true
 REQUESTED=""   # colon-delimited list of requested short_names, empty = all
 OUTPUT_NAME="gbif_dna_taxonomy_annotation"
+SOURCE_DIR="$REPO_ROOT/source-data"
+OUTPUT_DIR="$REPO_ROOT/output/fasta"
 DATASET_FASTAS=()  # FASTAs produced by this run, in order
 
 while [[ $# -gt 0 ]]; do
@@ -58,6 +62,18 @@ while [[ $# -gt 0 ]]; do
             shift
             [[ $# -eq 0 ]] && { echo "Error: --output-name requires a name argument" >&2; exit 1; }
             OUTPUT_NAME="$1"
+            ;;
+        --source-dir)
+            shift
+            [[ $# -eq 0 ]] && { echo "Error: --source-dir requires a path argument" >&2; exit 1; }
+            SOURCE_DIR="$1"
+            [[ "$SOURCE_DIR" != /* ]] && SOURCE_DIR="$REPO_ROOT/$SOURCE_DIR"
+            ;;
+        --output-dir)
+            shift
+            [[ $# -eq 0 ]] && { echo "Error: --output-dir requires a path argument" >&2; exit 1; }
+            OUTPUT_DIR="$1"
+            [[ "$OUTPUT_DIR" != /* ]] && OUTPUT_DIR="$REPO_ROOT/$OUTPUT_DIR"
             ;;
         -*) echo "Unknown flag: $1" >&2; exit 1 ;;
         *)  REQUESTED="$REQUESTED:$1:" ;;
@@ -99,7 +115,7 @@ for i in $(seq 0 $((count - 1))); do
     echo "  $short_name  ($target_gene)"
     echo "════════════════════════════════════════"
 
-    dir="source-data/$short_name"
+    dir="$SOURCE_DIR/$short_name"
     mkdir -p "$dir"
 
     # ── download endpoints ──────────────────────────────────────────────────
@@ -127,7 +143,9 @@ for i in $(seq 0 $((count - 1))); do
 
         # ── prepare (extraction etc.) ─────────────────────────────────────
         prepare_cmd=$(yq ".datasets[$i].prepare_cmd // \"\"" "$CONFIG")
+        prepare_cmd="${prepare_cmd//source-data\//$SOURCE_DIR/}"
         prepare_sentinel=$(yq ".datasets[$i].prepare_sentinel // \"\"" "$CONFIG")
+        prepare_sentinel="${prepare_sentinel//source-data\//$SOURCE_DIR/}"
 
         if [[ -n "$prepare_cmd" ]]; then
             if [[ -n "$prepare_sentinel" && -e "$prepare_sentinel" ]]; then
@@ -142,24 +160,32 @@ for i in $(seq 0 $((count - 1))); do
     # ── convert ─────────────────────────────────────────────────────────────
     if [[ "$DO_CONVERT" == true ]]; then
         convert_cmd=$(yq ".datasets[$i].convert_cmd" "$CONFIG")
+        convert_cmd="${convert_cmd//source-data\//$SOURCE_DIR/}"
+        convert_cmd="$convert_cmd --output-dir \"$OUTPUT_DIR\""
         echo "  Converting …"
         eval "$convert_cmd"
-        # Derive the output FASTA path: last positional argument before --target-gene
-        fasta_stem=$(echo "$convert_cmd" | sed 's/--target-gene.*//' | awk '{print $NF}')
-        DATASET_FASTAS+=("output/fasta/${fasta_stem}.fasta")
+        # Derive the output FASTA path: last positional argument before any -- flags
+        fasta_stem=$(echo "$convert_cmd" | sed 's/ --[a-z].*//' | awk '{print $NF}')
+        DATASET_FASTAS+=("$OUTPUT_DIR/${fasta_stem}.fasta")
     fi
 
 done
 
 # ── concatenate all dataset FASTAs into one combined file ─────────────────────
 if [[ "$DO_CONVERT" == true ]]; then
-    COMBINED="output/fasta/${OUTPUT_NAME}.fasta"
+    mkdir -p "$OUTPUT_DIR"
+    COMBINED="$OUTPUT_DIR/${OUTPUT_NAME}.fasta"
     echo ""
     echo "════════════════════════════════════════"
     echo "  Concatenating all FASTAs"
     echo "════════════════════════════════════════"
 
-    parts=("${DATASET_FASTAS[@]}")
+    parts=("${DATASET_FASTAS[@]+"${DATASET_FASTAS[@]}"}")
+
+    if [[ ${#parts[@]} -eq 0 ]]; then
+        echo "  No FASTAs were produced — nothing to concatenate." >&2
+        exit 1
+    fi
 
     cat "${parts[@]}" > "$COMBINED"
     COUNT=$(grep -c "^>" "$COMBINED")
@@ -171,8 +197,8 @@ if [[ "$DO_CONVERT" == true ]]; then
         echo "════════════════════════════════════════"
         echo "  Building vsearch UDB"
         echo "════════════════════════════════════════"
-        UDB="output/fasta/${OUTPUT_NAME}.udb"
-        LOG="output/fasta/${OUTPUT_NAME}.log"
+        UDB="$OUTPUT_DIR/${OUTPUT_NAME}.udb"
+        LOG="$OUTPUT_DIR/${OUTPUT_NAME}.log"
         vsearch --makeudb_usearch "$COMBINED" --output "$UDB" --log "$LOG"
         echo "  Done — $UDB"
     fi

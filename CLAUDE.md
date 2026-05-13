@@ -35,6 +35,8 @@ bash analysis/download_and_convert.sh --list                                 # s
 bash analysis/download_and_convert.sh --config small12s.yaml                 # use a custom config file
 bash analysis/download_and_convert.sh --output-name small_12s                # set output FASTA/UDB base name
 bash analysis/download_and_convert.sh --config small12s.yaml --output-name small_12s  # combine both
+bash analysis/download_and_convert.sh --source-dir /path/to/storage                   # store source data outside the repo (e.g. external drive)
+bash analysis/download_and_convert.sh --output-dir /path/to/storage                   # write FASTAs and UDB outside the repo
 ```
 
 Requires: `yq` (v4), `vsearch`, `curl`, `python3`, `duckdb`, `pandas`, `openpyxl`.
@@ -110,6 +112,9 @@ python3 analysis/query_to_fasta.py <name> --where "<SQL condition>"
 # Examples:
 python3 analysis/query_to_fasta.py musca --where "genus = 'Musca'"
 python3 analysis/query_to_fasta.py diptera --where "\"order\" = 'Diptera'"
+
+# For large queries, add --temp-dir to allow DuckDB to spill to disk:
+python3 analysis/query_to_fasta.py diptera --where "\"order\" = 'Diptera'" --temp-dir /tmp/duckdb_spill
 ```
 
 Output: `tests/input/<name>.fasta`

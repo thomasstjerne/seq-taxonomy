@@ -166,8 +166,10 @@ def main():
     parser.add_argument("xlsx_file",  help="Path to PR2 merged xlsx file")
     parser.add_argument("dataset",    help="Short dataset name for headers (e.g. pr2_18s)")
     parser.add_argument("--target-gene", required=True, help="Target gene to extract (e.g. 18s)")
+    parser.add_argument("--output-dir",  default=None, help="Directory to write output FASTA (default: output/fasta)")
     args = parser.parse_args()
 
+    OUTPUT_DIR  = Path(args.output_dir) if args.output_dir else Path("output/fasta")
     xlsx_path   = Path(args.xlsx_file)
     target_gene = args.target_gene
     gene_name   = normalise_gene(target_gene)

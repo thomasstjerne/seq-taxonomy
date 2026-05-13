@@ -186,8 +186,10 @@ def main():
     parser.add_argument("gtdb_dir",    help="Directory containing GTDB SSU FASTA and taxonomy files")
     parser.add_argument("dataset",     help="Short dataset name for headers (e.g. gtdb_16s)")
     parser.add_argument("--target-gene", required=True, help="Target gene label (e.g. 16s)")
+    parser.add_argument("--output-dir",  default=None,  help="Directory to write output FASTA (default: output/fasta)")
     args = parser.parse_args()
 
+    OUTPUT_DIR  = Path(args.output_dir) if args.output_dir else Path("output/fasta")
     gtdb_dir    = Path(args.gtdb_dir)
     target_gene = args.target_gene.lower()
     output_path = OUTPUT_DIR / f"{args.dataset}.fasta"

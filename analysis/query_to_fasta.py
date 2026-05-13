@@ -10,6 +10,7 @@ Usage:
 Examples:
     python3 analysis/query_to_fasta.py musca --where "genus = 'Musca'"
     python3 analysis/query_to_fasta.py diptera_families --where "\"order\" = 'Diptera' AND family IS NOT NULL"
+    python3 analysis/query_to_fasta.py musca --where "genus = 'Musca'" --temp-dir /tmp/duckdb_spill
 """
 
 import argparse
@@ -25,7 +26,8 @@ OUTPUT_DIR = Path("tests/input")
 def main():
     parser = argparse.ArgumentParser(description="Write a FASTA from trino_joined + trino_normalised_sequences")
     parser.add_argument("name",    help="Output filename stem (written to tests/input/<name>.fasta)")
-    parser.add_argument("--where", required=True, help="SQL WHERE clause to filter trino_joined.parquet")
+    parser.add_argument("--where",    required=True, help="SQL WHERE clause to filter trino_joined.parquet")
+    parser.add_argument("--temp-dir", default=None,  help="DuckDB temp directory for spilling to disk (e.g. /tmp/duckdb_spill)")
     args = parser.parse_args()
 
     for p in (JOINED, SEQUENCES):
@@ -36,6 +38,8 @@ def main():
     output_path = OUTPUT_DIR / f"{args.name}.fasta"
 
     con = duckdb.connect()
+    if args.temp_dir:
+        con.execute(f"SET temp_directory = '{args.temp_dir}'")
     rows = con.execute(f"""
         SELECT DISTINCT s.nucleotidesequenceid, s.sequence
         FROM '{JOINED}' j

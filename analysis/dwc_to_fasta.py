@@ -178,8 +178,10 @@ def main():
     parser.add_argument("dataset",  help="Short dataset name for FASTA headers (e.g. nbdl_12s)")
     parser.add_argument("--target-gene", required=True, help="Vocabulary term for output FASTA headers (e.g. SSU_rRNA_12S_mitochondrial)")
     parser.add_argument("--filter-gene", default=None, help="Value to match against the targetGene field in the DWC source (e.g. 12s); if omitted, all sequences are included")
+    parser.add_argument("--output-dir",  default=None, help="Directory to write output FASTA (default: output/fasta)")
     args = parser.parse_args()
 
+    OUTPUT_DIR  = Path(args.output_dir) if args.output_dir else Path("output/fasta")
     target_gene = args.target_gene
     filter_gene = args.filter_gene.lower() if args.filter_gene else None
     dwc_dir     = Path(args.dwc_dir)

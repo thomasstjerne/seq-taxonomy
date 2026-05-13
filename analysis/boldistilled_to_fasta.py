@@ -119,8 +119,10 @@ def main():
     parser.add_argument("taxonomy_tsv",  help="Path to BOLDistilled taxonomy TSV")
     parser.add_argument("dataset",       help="Short dataset name for headers (e.g. boldistilled_coi)")
     parser.add_argument("--target-gene", required=True, help="Target gene label (e.g. coi)")
+    parser.add_argument("--output-dir",  default=None, help="Directory to write output FASTA (default: output/fasta)")
     args = parser.parse_args()
 
+    OUTPUT_DIR  = Path(args.output_dir) if args.output_dir else Path("output/fasta")
     fasta_path  = Path(args.fasta_file)
     tsv_path    = Path(args.taxonomy_tsv)
     target_gene = args.target_gene.lower()

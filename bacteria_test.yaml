@@ -1,0 +1,64 @@
+# bacteria_test.yaml
+# 16S prokaryotic datasets for testing the Greengenes2 conversion script.
+# Includes GTDB, NCBI RefSeq 16S (Archaea + Bacteria), and Greengenes2.
+
+datasets:
+
+  - short_name: gtdb
+    version: v232
+    target_gene: SSU_rRNA_16S_prokaryotic
+    taxonomic_scope: Bacteria and Archaea (16S SSU rRNA)
+    citation: >
+      Parks DH et al. (2022) GTDB: an ongoing census of bacterial and archaeal
+      diversity through a phylogenetically consistent, rank normalised and complete
+      genome-based taxonomy. Nucleic Acids Res. 50(D1):D785-D794.
+      https://gtdb.ecogenomic.org
+    endpoints:
+      - https://data.gtdb.ecogenomic.org/releases/latest/genomic_files_reps/bac120_ssu_reps.fna.gz
+      - https://data.gtdb.ecogenomic.org/releases/latest/genomic_files_reps/ar53_ssu_reps.fna.gz
+      - https://data.gtdb.ecogenomic.org/releases/latest/bac120_taxonomy.tsv
+      - https://data.gtdb.ecogenomic.org/releases/latest/ar53_taxonomy.tsv
+    convert_cmd: python3 analysis/gtdb_to_fasta.py source-data/gtdb gtdb_16s --target-gene SSU_rRNA_16S_prokaryotic
+
+  - short_name: refSeq_arc_16s
+    version: "2026-05-01"
+    target_gene: SSU_rRNA_16S_prokaryotic
+    taxonomic_scope: Archaea (16S rRNA, NCBI RefSeq)
+    citation: >
+      NCBI RefSeq targeted loci project: 16S ribosomal RNA sequences (Archaea).
+      BioProject PRJNA33317. https://www.ncbi.nlm.nih.gov/bioproject/PRJNA33317
+    endpoints:
+      - https://hosted-datasets.gbif.org/ncbi/PRJNA33317.zip
+    prepare_cmd: unzip -n source-data/refSeq_arc_16s/PRJNA33317.zip -d source-data/refSeq_arc_16s/extracted
+    prepare_sentinel: source-data/refSeq_arc_16s/extracted
+    convert_cmd: python3 analysis/dwc_to_fasta.py source-data/refSeq_arc_16s/extracted refSeq_arc_16s --target-gene SSU_rRNA_16S_prokaryotic --filter-gene 16s
+
+  - short_name: refSeq_bac_16s
+    version: "2026-05-01"
+    target_gene: SSU_rRNA_16S_prokaryotic
+    taxonomic_scope: Bacteria (16S rRNA, NCBI RefSeq)
+    citation: >
+      NCBI RefSeq targeted loci project: 16S ribosomal RNA sequences (Bacteria).
+      BioProject PRJNA33175. https://www.ncbi.nlm.nih.gov/bioproject/PRJNA33175
+    endpoints:
+      - https://hosted-datasets.gbif.org/ncbi/PRJNA33175.zip
+    prepare_cmd: unzip -n source-data/refSeq_bac_16s/PRJNA33175.zip -d source-data/refSeq_bac_16s/extracted
+    prepare_sentinel: source-data/refSeq_bac_16s/extracted
+    convert_cmd: python3 analysis/dwc_to_fasta.py source-data/refSeq_bac_16s/extracted refSeq_bac_16s --target-gene SSU_rRNA_16S_prokaryotic --filter-gene 16s
+
+  - short_name: greengenes2
+    version: "2024.09"
+    target_gene: SSU_rRNA_16S_prokaryotic
+    taxonomic_scope: Bacteria and Archaea (16S SSU rRNA)
+    citation: >
+      McDonald D et al. (2023) Greengenes2 unifies microbial data in a single
+      reference tree. Nature Biotechnology 41:1730-1738.
+      https://doi.org/10.1038/s41587-023-01845-1
+    endpoints:
+      - http://ftp.microbio.me/greengenes_release/2024.09/2024.09.backbone.full-length.fna.qza
+      - http://ftp.microbio.me/greengenes_release/2024.09/2024.09.taxonomy.id.tsv.gz
+    prepare_cmd: >
+      unzip -n source-data/greengenes2/2024.09.backbone.full-length.fna.qza -d source-data/greengenes2/backbone &&
+      mv source-data/greengenes2/backbone/*/data/dna-sequences.fasta source-data/greengenes2/2024.09.backbone.full-length.fna
+    prepare_sentinel: source-data/greengenes2/2024.09.backbone.full-length.fna
+    convert_cmd: python3 analysis/greengenes2_to_fasta.py source-data/greengenes2 greengenes2_16s --target-gene SSU_rRNA_16S_prokaryotic

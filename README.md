@@ -112,6 +112,9 @@ Filter `trino_joined.parquet` by any SQL condition and write matching sequences 
 ```bash
 python3 analysis/query_to_fasta.py musca --where "genus = 'Musca'"
 # → tests/input/musca.fasta  (7,356 sequences)
+
+# For large queries, add --temp-dir to allow DuckDB to spill to disk:
+python3 analysis/query_to_fasta.py diptera --where "\"order\" = 'Diptera'" --temp-dir /tmp/duckdb_spill
 ```
 
 ### 3. Annotate and write Parquet
