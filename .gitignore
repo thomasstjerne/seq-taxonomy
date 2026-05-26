@@ -3,6 +3,8 @@
 !top100_distinct_families.parquet
 trino_normalised_sequences.parquet
 
+tobias_misc/
+
 source-data/*
 !source-data/README.md
 output/
