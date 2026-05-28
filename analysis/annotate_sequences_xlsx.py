@@ -105,9 +105,9 @@ def main():
         batch_ids = {seq_id for seq_id, _ in batch}
         no_hit += len(batch_ids - results.keys())
 
-        for query_id, match in results.items():
-            if match:
-                rows.append({"queryId": query_id, **match})
+        for query_id, matches in results.items():
+            if matches:
+                rows.append({"queryId": query_id, **matches[0]})
 
     print(f"\nMatched:   {len(rows):,}")
     if no_hit:

@@ -129,6 +129,18 @@ vsearch --threads 8 --usearch_global_server \
 cd node-server && npm start
 ```
 
+The proxy exposes three endpoints:
+
+| Endpoint | Body | Response |
+|---|---|---|
+| `POST /search/batch` | FASTA (text/plain) | `{ [queryId]: topMatches[] }` — up to 5 ranked matches per sequence |
+| `POST /occurrence/classify` | Single occurrence (JSON) | `DnaClassification` or 204 |
+| `POST /occurrence/classify/batch` | `occurrence[]` (JSON) | `{ gbifID, classification }[]` — one entry per input occurrence |
+
+`/occurrence/classify/batch` deduplicates sequences across the whole array before querying vsearch, so occurrences sharing the same sequence only incur one vsearch lookup.
+
+Matches are ranked by identity descending, then query coverage (`qcovs`) descending as a tiebreaker — so when two hits share the same identity, the one covering more of the query sequence is preferred.
+
 ### 2. Create a query FASTA
 
 Filter `trino_joined.parquet` by any SQL condition and write matching sequences to a FASTA:
@@ -204,6 +216,8 @@ analysis/
   query_to_fasta.py             # filter GBIF parquet → query FASTA
   annotate_sequences.py         # send FASTA to proxy → annotated Parquet
   annotate_sequences_xlsx.py    # send FASTA to proxy → annotated Excel (xlsx)
+  generate_test_occurrences.py  # build multi-sequence occurrence JSON for endpoint testing
+  batch_classify_occurrences.py # classify occurrences via /occurrence/classify/batch → TSV
 node-server/
   index.mjs                     # Express proxy: forwards to vsearch, parses results
   pickBestMatch.mjs             # default best-match selector

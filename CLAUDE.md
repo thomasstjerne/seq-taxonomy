@@ -123,7 +123,21 @@ cd node-server && npm start
 # Override with PORT=XXXX or VSEARCH_URL=http://... environment variables
 ```
 
-The proxy exposes `POST /search/batch?outfmt=blast6out|alnout` — accepts a FASTA body, forwards to vsearch, parses the 23-field headers, and returns one best-match object per query ID (selected by `pickBestMatch.mjs`).
+The proxy exposes three endpoints:
+
+| Endpoint | Body | Response |
+|---|---|---|
+| `POST /search/batch` | FASTA (text/plain) | `{ [queryId]: topMatches[] }` — up to 5 ranked matches per sequence |
+| `POST /occurrence/classify` | Single occurrence (JSON) | `DnaClassification` or 204 |
+| `POST /occurrence/classify/batch` | `occurrence[]` (JSON) | `{ gbifID, classification }[]` — one entry per input occurrence |
+
+Query params for `/search/batch`: `outfmt=blast6out|alnout` (default `blast6out`), `selector=<name>` (default `pickBestMatch`).
+
+**`/occurrence/classify/batch`** deduplicates sequences across all occurrences before querying vsearch (a single round-trip regardless of how many occurrences share the same sequence), then fans the cached results back to each `assignTaxonomyToOccurrence` call.
+
+**`pickBestMatch` return type**: all selector functions return `object[]` (up to 5 matches, best first). `topMatches[0]` is the primary classification; the remaining matches are available to `assignTaxonomyToOccurrence` for cases where the top match alone is insufficient (e.g. disambiguating cross-species sequences).
+
+**`pickBestMatch` ranking rule**: sort by `identity` descending, then `qcovs` descending as tiebreaker. This ensures that when two hits share the same identity, the one covering more of the query sequence is preferred.
 
 ### 3. Create a query FASTA
 
@@ -160,6 +174,28 @@ python3 analysis/annotate_sequences.py tests/input/<name>.fasta
 The `--selector` value must match both a file `node-server/<selector>.mjs` and a named export `<selector>` within it. The server validates the name and caches loaded modules across requests. The default selector is `pickBestMatch`.
 
 The output Parquet has 35 columns: `queryId` + all 23 reference header fields + `identity`, `alignmentLength`, `mismatches`, `gapOpenings`, `qstart`, `qend`, `sstart`, `send`, `evalue`, `bitScore`, `qcovs`.
+
+### 5. Batch-classify occurrences and compare taxonomy
+
+To test `/occurrence/classify/batch` against real GBIF occurrences:
+
+```bash
+# Generate test data: 500 occurrences with 2–4 sequences each
+python3 analysis/generate_test_occurrences.py
+# → node-server/test-data/multi_seq_occurrences.json
+
+# Classify and write a TSV comparing publisher vs assigned taxonomy
+python3 analysis/batch_classify_occurrences.py node-server/test-data/multi_seq_occurrences.json
+# → output/multi_seq_occurrences_classified.tsv
+
+# Options for both scripts:
+#   --output   path to output file
+#   --limit    number of occurrences to generate (default 500)
+#   --server   proxy base URL (default http://localhost:3000)
+#   --batch-size  occurrences per request (default 25)
+```
+
+The TSV has one row per occurrence with `in_*` columns (publisher taxonomy) and `out_*` columns (assigned taxonomy), plus a `remarks` field recording which sequences matched, at what identity/qcovs, and from which reference dataset.
 
 ## GBIF annotation data
 
