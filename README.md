@@ -74,6 +74,8 @@ bash analysis/download_and_convert.sh --config small12s.yaml --output-name small
 | refSeq_bac_16s | 16S | Bacteria (NCBI RefSeq) | 2026-05-01 |
 | refseq_its | ITS | Fungi and land plants (NCBI RefSeq) | — |
 | gtdb | 16S | Bacteria and Archaea | v232 |
+| its2_global | ITS2 | Vascular plants | 2023-01-17 |
+| bell_brosi_rbcl | rbcL | Land plants | 2021-07 |
 
 See `source-data/README.md` for download URLs and file descriptions for each source.
 
@@ -86,6 +88,28 @@ All output FASTAs share the same 23-field pipe-separated header:
 ```
 
 Fields unavailable in a given source are left empty; pipe delimiters are always present so columns stay aligned across sources.
+
+### Within-species deduplication
+
+Several databases contain many exact within-species duplicates. The pipeline runs deduplication automatically for these datasets via `postprocess_cmd` in `datasets.yaml`, and the deduped FASTA is what goes into the combined output. To run it manually:
+
+```bash
+python3 analysis/duplicate_analysis.py \
+    --fasta output/fasta/its2_global.fasta \
+    --write-deduped output/fasta/its2_global_deduped.fasta
+
+python3 analysis/duplicate_analysis.py \
+    --fasta output/fasta/mitofish_12s.fasta \
+    --write-deduped output/fasta/mitofish_12s_deduped.fasta
+```
+
+This collapses entries with the same sequence **and** the same species, but keeps sequences that appear under multiple species. Those cross-species duplicates are preserved intentionally — `pickBestMatch` uses them as a signal that the sequence cannot be identified below genus level.
+
+| Dataset | Before | After | Removed |
+|---|---|---|---|
+| its2_global | 307,976 | 258,218 | 49,758 |
+| mitofish_12s | 43,870 | 37,145 | 6,725 |
+| pr2_18s | 223,357 | 196,218 | 27,139 |
 
 ## Annotating GBIF sequences against the reference database
 
@@ -174,6 +198,9 @@ analysis/
   boldistilled_to_fasta.py      # BOLDistilled → normalised FASTA
   unite_to_fasta.py             # UNITE → normalised FASTA
   gtdb_to_fasta.py              # GTDB SSU → normalised FASTA
+  its2_global_to_fasta.py       # ITS2 Global FASTA → normalised FASTA
+  bell_brosi_rbcl_to_fasta.py   # Bell & Brosi rbcL DADA2 FASTA → normalised FASTA
+  duplicate_analysis.py    # analyse/remove within-species duplicate sequences
   query_to_fasta.py             # filter GBIF parquet → query FASTA
   annotate_sequences.py         # send FASTA to proxy → annotated Parquet
   annotate_sequences_xlsx.py    # send FASTA to proxy → annotated Excel (xlsx)

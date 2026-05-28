@@ -26,6 +26,8 @@ datasets:
     prepare_cmd: mkdir -p source-data/mitofish/tables && tar -xf source-data/mitofish/tables.tar -C source-data/mitofish/tables
     prepare_sentinel: source-data/mitofish/tables
     convert_cmd: python3 analysis/mitofish_to_fasta.py source-data/mitofish/mitofishdb.fa.gz source-data/mitofish/tables mitofish_12s --target-gene SSU_rRNA_12S_mitochondrial
+    postprocess_cmd: python3 analysis/duplicate_analysis.py --fasta output/fasta/mitofish_12s.fasta --write-deduped output/fasta/mitofish_12s_deduped.fasta
+    postprocess_fasta: mitofish_12s_deduped
 
   - short_name: nbdl
     version: "2024"   # no formal version; update if the archive is refreshed
@@ -68,6 +70,8 @@ datasets:
       # Update version tag when a new PR2 release is available.
       - https://github.com/pr2database/pr2database/releases/download/v5.1.0.0/pr2_version_5.1.0_merged.xlsx
     convert_cmd: python3 analysis/pr2_to_fasta.py source-data/pr2/pr2_version_5.1.0_merged.xlsx pr2_18s --target-gene SSU_rRNA_18S_eukaryotic
+    postprocess_cmd: python3 analysis/duplicate_analysis.py --fasta output/fasta/pr2_18s.fasta --write-deduped output/fasta/pr2_18s_deduped.fasta
+    postprocess_fasta: pr2_18s_deduped
 
   - short_name: boldistilled
     version: Apr2026
@@ -150,6 +154,8 @@ datasets:
     prepare_cmd: mv "source-data/its2_global/its2.global.2023-01-17.curated.tax.mc.add.fa?download=1" source-data/its2_global/its2.global.2023-01-17.curated.tax.mc.add.fa
     prepare_sentinel: source-data/its2_global/its2.global.2023-01-17.curated.tax.mc.add.fa
     convert_cmd: python3 analysis/its2_global_to_fasta.py source-data/its2_global/its2.global.2023-01-17.curated.tax.mc.add.fa its2_global --target-gene ITS2
+    postprocess_cmd: python3 analysis/duplicate_analysis.py --fasta output/fasta/its2_global.fasta --write-deduped output/fasta/its2_global_deduped.fasta
+    postprocess_fasta: its2_global_deduped
 
   - short_name: bell_brosi_rbcl
     version: "2021-07"

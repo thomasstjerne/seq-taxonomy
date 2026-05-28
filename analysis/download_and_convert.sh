@@ -167,6 +167,20 @@ for i in $(seq 0 $((count - 1))); do
         # Derive the output FASTA path: last positional argument before any -- flags
         fasta_stem=$(echo "$convert_cmd" | sed 's/ --[a-z].*//' | awk '{print $NF}')
         DATASET_FASTAS+=("$OUTPUT_DIR/${fasta_stem}.fasta")
+
+        # ── post-process (e.g. within-species dedup) ──────────────────────
+        postprocess_cmd=$(yq ".datasets[$i].postprocess_cmd // \"\"" "$CONFIG")
+        postprocess_fasta=$(yq ".datasets[$i].postprocess_fasta // \"\"" "$CONFIG")
+        if [[ -n "$postprocess_cmd" ]]; then
+            postprocess_cmd="${postprocess_cmd//source-data\//$SOURCE_DIR/}"
+            postprocess_cmd="${postprocess_cmd//output\/fasta\//$OUTPUT_DIR/}"
+            echo "  Post-processing …"
+            eval "$postprocess_cmd"
+            if [[ -n "$postprocess_fasta" ]]; then
+                # Use the post-processed FASTA in the combined output instead of the raw one
+                DATASET_FASTAS[-1]="$OUTPUT_DIR/${postprocess_fasta}.fasta"
+            fi
+        fi
     fi
 
 done

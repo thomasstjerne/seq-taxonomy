@@ -14,7 +14,9 @@ The approach has two tracks:
 
 ### Configuration
 
-All sources are defined in `datasets.yaml` (repo root). Each entry has: `short_name`, `version`, `target_gene`, `taxonomic_scope`, `citation`, `endpoints`, optional `curl_flags`/`prepare_cmd`/`prepare_sentinel`, and `convert_cmd`.
+All sources are defined in `datasets.yaml` (repo root). Each entry has: `short_name`, `version`, `target_gene`, `taxonomic_scope`, `citation`, `endpoints`, optional `curl_flags`/`prepare_cmd`/`prepare_sentinel`, `convert_cmd`, and optional `postprocess_cmd`/`postprocess_fasta`.
+
+If `postprocess_cmd` is set, the pipeline runs it after conversion (with `output/fasta/` → `$OUTPUT_DIR/` substitution). If `postprocess_fasta` is also set, the combined FASTA uses that file instead of the raw conversion output.
 
 The `target_gene` value must be a concept name from the GBIF target_gene vocabulary:
 - Browse: https://registry.gbif.org/vocabulary/target_gene/concepts
@@ -68,6 +70,27 @@ Each script in `analysis/` handles one source format:
 | `boldistilled_to_fasta.py` | FASTA + taxonomy TSV, BIN-keyed | boldistilled |
 | `unite_to_fasta.py` | FASTA with `k__/p__/.../s__` rank prefixes | unite |
 | `gtdb_to_fasta.py` | Gzipped FASTA + taxonomy TSV, `d__/p__/.../s__` rank prefixes | gtdb |
+| `its2_global_to_fasta.py` | FASTA with `>ID;tax=k:V,p:V,...,s:V;` headers | its2_global |
+| `bell_brosi_rbcl_to_fasta.py` | FASTA with `k__/p__/.../s__` DADA2 headers + numeric taxid suffixes | bell_brosi_rbcl |
+
+### Post-processing: within-species deduplication
+
+Several databases contain many exact within-species duplicates (multiple accessions for the same species with identical sequence). The dedup step is run automatically by `download_and_convert.sh` via `postprocess_cmd` in `datasets.yaml`. It can also be run manually:
+
+```bash
+python3 analysis/duplicate_analysis.py --fasta output/fasta/its2_global.fasta \
+    --write-deduped output/fasta/its2_global_deduped.fasta
+python3 analysis/duplicate_analysis.py --fasta output/fasta/mitofish_12s.fasta \
+    --write-deduped output/fasta/mitofish_12s_deduped.fasta
+```
+
+**Dedup rule**: collapse by `(sequence, species)` — only within-species duplicates are removed. Sequences that are identical across different species are kept once per species, because their cross-species presence is meaningful signal for `pickBestMatch`: when vsearch returns the same sequence under multiple species names, the selector knows it can only assign to genus level with confidence.
+
+| Dataset | Before | After | Removed |
+|---|---|---|---|
+| its2_global | 307,976 | 258,218 | 49,758 |
+| mitofish_12s | 43,870 | 37,145 | 6,725 |
+| pr2_18s | 223,357 | 196,218 | 27,139 |
 
 ### Known issues / TODOs
 
