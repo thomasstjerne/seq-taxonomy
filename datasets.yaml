@@ -136,6 +136,35 @@ datasets:
     prepare_sentinel: source-data/refseq_its/extracted
     convert_cmd: python3 analysis/dwc_to_fasta.py source-data/refseq_its/extracted refseq_its --target-gene ITS_region --filter-gene its
 
+  - short_name: its2_global
+    version: "2023-01-17"
+    target_gene: ITS2
+    taxonomic_scope: Viridiplantae (ITS2)
+    citation: >
+      Quaresma A et al. (2024) Semi-automated sequence curation for reliable reference
+      datasets in ITS2 vascular plant DNA (meta-)barcoding. Scientific Data.
+      https://doi.org/10.1038/s41597-024-02962-5
+    endpoints:
+      # ?download=1 suffix causes basename to save as 'its2...fa?download=1'; prepare_cmd renames it
+      - https://zenodo.org/records/7968519/files/its2.global.2023-01-17.curated.tax.mc.add.fa?download=1
+    prepare_cmd: mv "source-data/its2_global/its2.global.2023-01-17.curated.tax.mc.add.fa?download=1" source-data/its2_global/its2.global.2023-01-17.curated.tax.mc.add.fa
+    prepare_sentinel: source-data/its2_global/its2.global.2023-01-17.curated.tax.mc.add.fa
+    convert_cmd: python3 analysis/its2_global_to_fasta.py source-data/its2_global/its2.global.2023-01-17.curated.tax.mc.add.fa its2_global --target-gene ITS2
+
+  - short_name: bell_brosi_rbcl
+    version: "2021-07"
+    target_gene: rbcL
+    taxonomic_scope: Land plants (rbcL)
+    citation: >
+      Bell KL, Brosi BJ (2016) rbcL reference library. figshare. Collection.
+      https://doi.org/10.6084/m9.figshare.c.3466311.v1
+    endpoints:
+      # ndownloader URL has no filename — downloads as '28757943'; prepare_cmd renames it
+      - https://ndownloader.figshare.com/files/28757943
+    prepare_cmd: mv source-data/bell_brosi_rbcl/28757943 source-data/bell_brosi_rbcl/rbcL_plus_Nov2019adds_Jul2021corrections.dada2.fa
+    prepare_sentinel: source-data/bell_brosi_rbcl/rbcL_plus_Nov2019adds_Jul2021corrections.dada2.fa
+    convert_cmd: python3 analysis/bell_brosi_rbcl_to_fasta.py source-data/bell_brosi_rbcl/rbcL_plus_Nov2019adds_Jul2021corrections.dada2.fa bell_brosi_rbcl --target-gene rbcL
+
   - short_name: gtdb
     version: v232
     target_gene: SSU_rRNA_16S_prokaryotic

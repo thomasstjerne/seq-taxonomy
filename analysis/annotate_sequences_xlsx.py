@@ -53,8 +53,11 @@ def to_fasta_text(seqs):
     return "\n".join(f">{seq_id}\n{seq}" for seq_id, seq in seqs)
 
 
-def send_batch(server_url: str, fasta_text: str) -> dict:
-    url = f"{server_url}/search/batch?outfmt=blast6out"
+def send_batch(server_url: str, fasta_text: str, selector: str | None = None) -> dict:
+    params = "outfmt=blast6out"
+    if selector:
+        params += f"&selector={selector}"
+    url = f"{server_url}/search/batch?{params}"
     req = urllib.request.Request(
         url,
         data=fasta_text.encode("utf-8"),
@@ -75,6 +78,8 @@ def main():
                         help=f"Proxy server base URL (default: {DEFAULT_SERVER})")
     parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE,
                         help=f"Sequences per batch (default: {DEFAULT_BATCH_SIZE})")
+    parser.add_argument("--selector",   default=None,
+                        help="pickBestMatch function to use on the server (e.g. pickBestMatch2)")
     args = parser.parse_args()
 
     fasta_path = Path(args.fasta_file)
@@ -95,7 +100,7 @@ def main():
 
     for i, batch in enumerate(chunked(sequences, args.batch_size), 1):
         print(f"  Batch {i}/{n_batches} …", end="\r", flush=True)
-        results = send_batch(args.server, to_fasta_text(batch))
+        results = send_batch(args.server, to_fasta_text(batch), args.selector)
 
         batch_ids = {seq_id for seq_id, _ in batch}
         no_hit += len(batch_ids - results.keys())

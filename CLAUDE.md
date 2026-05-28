@@ -131,7 +131,10 @@ python3 analysis/annotate_sequences.py tests/input/<name>.fasta
 #   --output path/to/output.parquet
 #   --server http://localhost:3000
 #   --batch-size 100
+#   --selector pickBestMatch2   # use an alternate pickBestMatch function (see node-server/)
 ```
+
+The `--selector` value must match both a file `node-server/<selector>.mjs` and a named export `<selector>` within it. The server validates the name and caches loaded modules across requests. The default selector is `pickBestMatch`.
 
 The output Parquet has 35 columns: `queryId` + all 23 reference header fields + `identity`, `alignmentLength`, `mismatches`, `gapOpenings`, `qstart`, `qend`, `sstart`, `send`, `evalue`, `bitScore`, `qcovs`.
 

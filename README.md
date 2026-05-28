@@ -122,9 +122,17 @@ python3 analysis/query_to_fasta.py diptera --where "\"order\" = 'Diptera'" --tem
 ```bash
 python3 analysis/annotate_sequences.py tests/input/musca.fasta
 # → output/musca_annotated.parquet
+
+# Options:
+#   --output path/to/output.parquet
+#   --server http://localhost:3000
+#   --batch-size 100
+#   --selector pickBestMatch2   # use an alternate best-match selector (see node-server/)
 ```
 
 The output has 35 columns: `queryId` + all 23 reference header fields (taxonomy, dataset, gene) + alignment stats (`identity`, `alignmentLength`, `mismatches`, `qcovs`, …).
+
+To experiment with different selection strategies, add a file `node-server/pickBestMatchFoo.mjs` that exports a function `pickBestMatchFoo`, then pass `--selector pickBestMatchFoo`.
 
 ## Analysing GBIF sequence annotations
 
@@ -168,9 +176,11 @@ analysis/
   gtdb_to_fasta.py              # GTDB SSU → normalised FASTA
   query_to_fasta.py             # filter GBIF parquet → query FASTA
   annotate_sequences.py         # send FASTA to proxy → annotated Parquet
+  annotate_sequences_xlsx.py    # send FASTA to proxy → annotated Excel (xlsx)
 node-server/
   index.mjs                     # Express proxy: forwards to vsearch, parses results
-  pickBestMatch.mjs             # selects the best match from a list of candidates
+  pickBestMatch.mjs             # default best-match selector
+  pickBestMatch2.mjs            # alternate selector (pass --selector pickBestMatch2)
 queries/                        # DuckDB SQL files
 output/
   fasta/                        # per-dataset and combined FASTAs + UDB index
