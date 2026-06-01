@@ -170,6 +170,28 @@ The output has 35 columns: `queryId` + all 23 reference header fields (taxonomy,
 
 To experiment with different selection strategies, add a file `node-server/pickBestMatchFoo.mjs` that exports a function `pickBestMatchFoo`, then pass `--selector pickBestMatchFoo`.
 
+### Testing the matching logic
+
+The ranking logic in `pickBestMatch` and `assignTaxonomyToOccurrence` is covered by a unit test suite that runs entirely offline — no vsearch server, no reference database, no real sequences needed. Each test constructs a small set of synthetic match objects and asserts that a specific ranking rule produces the expected result.
+
+This makes it practical to verify a rule before wiring it into the live system, and to catch regressions as the logic evolves.
+
+```bash
+cd node-server && npm test
+```
+
+Example output:
+
+```
+✔ higher identity ranks first (0.8ms)
+✔ higher qcovs wins when identity is tied (0.07ms)
+✔ multiple sequences: sequence with highest identity wins (0.09ms)
+...
+ℹ tests 15  pass 15  fail 0
+```
+
+Tests live in `node-server/test/`. Each file maps to one module (`pickBestMatch.test.mjs`, `assignTaxonomyToOccurrence.test.mjs`), and each `test()` block covers exactly one rule. When adding a new ranking rule, add the corresponding test first.
+
 ## Analysing GBIF sequence annotations
 
 The main working dataset is `trino_joined.parquet` — a full join from Trino/GBIF with 171M rows and 22M unique sequences. It is not committed to git; collaborators keep their own copy.

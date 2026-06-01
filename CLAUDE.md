@@ -197,6 +197,20 @@ python3 analysis/batch_classify_occurrences.py node-server/test-data/multi_seq_o
 
 The TSV has one row per occurrence with `in_*` columns (publisher taxonomy) and `out_*` columns (assigned taxonomy), plus a `remarks` field recording which sequences matched, at what identity/qcovs, and from which reference dataset.
 
+### Unit tests for matching logic
+
+`pickBestMatch` and `assignTaxonomyToOccurrence` have a unit test suite that runs without vsearch or any live server. Tests use minimal synthetic match objects and mocked `searchSequences` functions — no real data required.
+
+```bash
+cd node-server && npm test
+```
+
+Tests live in `node-server/test/`. **Add a test for every new ranking rule before implementing it.** Each test should cover exactly one rule with the smallest data that demonstrates it.
+
+Current rules under test:
+- `pickBestMatch`: sort by `identity` desc, `qcovs` desc as tiebreaker
+- `assignTaxonomyToOccurrence`: null on no sequences / no matches; highest-identity sequence wins when multiple sequences present; invalid sequences excluded before querying
+
 ## GBIF annotation data
 
 **`trino_joined.parquet`** — main working dataset (full join from Trino/GBIF). Not committed to git.
