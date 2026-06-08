@@ -141,6 +141,28 @@ The proxy exposes three endpoints:
 
 Matches are ranked by identity descending, then query coverage (`qcovs`) descending as a tiebreaker — so when two hits share the same identity, the one covering more of the query sequence is preferred.
 
+#### Logging matches (debugging aid)
+
+The proxy can log the top N matches per queried sequence, controlled by environment variables at startup. All three share the same N (`LOG_TOP_MATCHES`, defaulting to 5 if only a file path is set), and output files are truncated fresh on each start with a single header row.
+
+| Variable | Effect |
+|---|---|
+| `LOG_TOP_MATCHES=N` | print the top N parsed matches per sequence to the console as a TSV block |
+| `LOG_TOP_MATCHES_FILE=path` | write the parsed top-N rows to a flat TSV file (with a `queryId` column) instead of the console — better for large multi-request runs |
+| `LOG_RAW_MATCHES_FILE=path` | write the top-N **raw** vsearch blast6out lines (unparsed, in vsearch's own order) to a file |
+
+```bash
+# console:
+cd node-server && LOG_TOP_MATCHES=5 npm start
+
+# parsed + raw to files (parent dirs are created automatically):
+cd node-server && LOG_TOP_MATCHES=10 \
+  LOG_TOP_MATCHES_FILE=output/top_matches.tsv \
+  LOG_RAW_MATCHES_FILE=output/raw_matches.tsv npm start
+```
+
+Raw logging covers sequences that actually reach vsearch; cache hits (which skip vsearch) do not appear in the raw file.
+
 ### 2. Create a query FASTA
 
 Filter `trino_joined.parquet` by any SQL condition and write matching sequences to a FASTA:

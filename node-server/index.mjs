@@ -1,5 +1,7 @@
 import express from 'express';
 import { createRequire } from 'module';
+import { createWriteStream, mkdirSync } from 'fs';
+import { dirname } from 'path';
 import { pickBestMatch } from './pickBestMatch.mjs';
 import { assignTaxonomyToOccurrence } from './assignTaxonomyToOccurrence.mjs';
 
@@ -22,6 +24,77 @@ async function loadSelector(name) {
 
 const VSEARCH_URL = process.env.VSEARCH_URL || 'http://0.0.0.0:8000/search/batch';
 const PORT = process.env.PORT || 3000;
+
+// Log the top N matches for every queried sequence (debugging/inspection aid):
+//   LOG_TOP_MATCHES=<N>        how many matches to log per sequence
+//   LOG_TOP_MATCHES_FILE=path  append parsed rows to this file as flat TSV instead
+//                              of the console (better for large multi-request tests)
+//   LOG_RAW_MATCHES_FILE=path  append the raw, unparsed vsearch blast6out lines
+//                              (top N per query, in vsearch's own order) to this file
+// N is shared by all three; if only a file path is given, N defaults to 5.
+const LOG_TOP_MATCHES_FILE = process.env.LOG_TOP_MATCHES_FILE || null;
+const LOG_RAW_MATCHES_FILE = process.env.LOG_RAW_MATCHES_FILE || null;
+const LOG_TOP_MATCHES =
+  (parseInt(process.env.LOG_TOP_MATCHES) || 0) ||
+  ((LOG_TOP_MATCHES_FILE || LOG_RAW_MATCHES_FILE) ? 5 : 0);
+const LOG_FIELDS = ['identity', 'qcovs', 'scientificName', 'taxonRank', 'dataset', 'targetGene'];
+// blast6out column order, for the raw-log header row.
+const BLAST6_COLUMNS = ['query', 'target', 'identity', 'alnlen', 'mismatch',
+  'gapopen', 'qstart', 'qend', 'sstart', 'send', 'evalue', 'bitscore'];
+
+// Truncate-on-start: each server run produces a fresh log with a single header row.
+// Creates the parent directory if needed; a stream error is logged, not fatal.
+function openLogStream(path, headerCols) {
+  mkdirSync(dirname(path), { recursive: true });
+  const stream = createWriteStream(path, { flags: 'w' });
+  stream.on('error', err => console.error(`Log file error (${path}):`, err.message));
+  stream.write(headerCols.join('\t') + '\n');
+  return stream;
+}
+
+const logStream = LOG_TOP_MATCHES_FILE
+  ? openLogStream(LOG_TOP_MATCHES_FILE, ['queryId', 'rank', ...LOG_FIELDS])
+  : null;
+const rawLogStream = LOG_RAW_MATCHES_FILE
+  ? openLogStream(LOG_RAW_MATCHES_FILE, BLAST6_COLUMNS)
+  : null;
+
+function logTopMatches(queryId, matches, n = LOG_TOP_MATCHES) {
+  if (!n || !matches?.length) return;
+  const top = [...matches]
+    .sort((a, b) => (b.identity - a.identity) || (b.qcovs - a.qcovs))
+    .slice(0, n);
+  if (logStream) {
+    // Flat TSV with a queryId column, one write per query block (writes are
+    // serialised by the stream so blocks stay intact under concurrency).
+    logStream.write(
+      top.map((m, i) => [queryId, i + 1, ...LOG_FIELDS.map(f => m[f] ?? '')].join('\t')).join('\n') + '\n'
+    );
+  } else {
+    const rows = [
+      `top ${top.length} of ${matches.length} matches for ${queryId}:`,
+      ['rank', ...LOG_FIELDS].join('\t'),
+      ...top.map((m, i) => [i + 1, ...LOG_FIELDS.map(f => m[f] ?? '')].join('\t')),
+    ];
+    console.log(rows.join('\n'));  // single write keeps the block intact under concurrency
+  }
+}
+
+// Append the top N raw blast6out lines per query, exactly as vsearch returned
+// them (no parsing, no re-ordering). Called with the raw vsearch response text.
+function logRawMatches(rawText, n = LOG_TOP_MATCHES) {
+  if (!rawLogStream || !n || !rawText) return;
+  const counts = {};
+  const out = [];
+  for (const line of rawText.split('\n')) {
+    if (!line.trim()) continue;
+    const tab = line.indexOf('\t');
+    const queryId = tab === -1 ? line : line.slice(0, tab);
+    counts[queryId] = (counts[queryId] || 0) + 1;
+    if (counts[queryId] <= n) out.push(line);
+  }
+  if (out.length) rawLogStream.write(out.join('\n') + '\n');
+}
 
 // Field order matches the 23-field pipe-separated FASTA header
 const HEADER_FIELDS = [
@@ -202,9 +275,14 @@ app.post('/search/batch', async (req, res) => {
   }
 
   const text = await vsearchRes.text();
+  if (outfmt === 'blast6out') logRawMatches(text);
   const parsed = outfmt === 'blast6out'
     ? parseBlast6out(text, sequences)
     : parseAlnout(text, sequences);
+
+  if (LOG_TOP_MATCHES) {
+    for (const [queryId, matches] of Object.entries(parsed)) logTopMatches(queryId, matches);
+  }
 
   const result = Object.fromEntries(
     Object.entries(parsed).map(([queryId, matches]) => [queryId, selector(queryId, matches)])
@@ -226,6 +304,7 @@ async function vsearchQuery(fasta) {
     throw new Error(`vsearch error ${vsearchRes.status}: ${text}`);
   }
   const text = await vsearchRes.text();
+  logRawMatches(text);
   return parseBlast6out(text, parseFasta(fasta));
 }
 
@@ -263,6 +342,10 @@ async function vsearchQueryWithCache(fasta) {
         matchesMap[id] = matches;
       })
     );
+  }
+
+  if (LOG_TOP_MATCHES) {
+    for (const [id, matches] of Object.entries(matchesMap)) logTopMatches(id, matches);
   }
 
   return matchesMap;
@@ -373,4 +456,22 @@ app.post('/occurrence/classify/batch', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`vsearch proxy listening on http://localhost:${PORT}`);
   console.log(`Forwarding to ${VSEARCH_URL}`);
+  if (LOG_TOP_MATCHES) {
+    const dest = logStream ? `file ${LOG_TOP_MATCHES_FILE}` : 'console';
+    console.log(`Logging top ${LOG_TOP_MATCHES} matches per query to ${dest}`);
+  }
+  if (rawLogStream) {
+    console.log(`Logging top ${LOG_TOP_MATCHES} raw vsearch matches per query to file ${LOG_RAW_MATCHES_FILE}`);
+  }
 });
+
+// Flush the log files before exiting so the tail of a test run isn't lost.
+const logStreams = [logStream, rawLogStream].filter(Boolean);
+if (logStreams.length) {
+  const closeLogs = () => {
+    let pending = logStreams.length;
+    for (const s of logStreams) s.end(() => { if (--pending === 0) process.exit(0); });
+  };
+  process.on('SIGINT', closeLogs);
+  process.on('SIGTERM', closeLogs);
+}

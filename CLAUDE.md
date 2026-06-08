@@ -121,6 +121,19 @@ The proxy parses vsearch output and returns structured JSON:
 cd node-server && npm start
 # Listens on http://localhost:3000 by default
 # Override with PORT=XXXX or VSEARCH_URL=http://... environment variables
+# LOG_TOP_MATCHES=N prints the top N matches per queried sequence to the console
+#   as a TSV block (rank, identity, qcovs, scientificName, taxonRank, dataset,
+#   targetGene) — a debugging/inspection aid, off by default. e.g.:
+#   LOG_TOP_MATCHES=5 npm start
+# LOG_TOP_MATCHES_FILE=path appends the top N rows to a flat TSV file (with a
+#   queryId column) instead of the console — better for large multi-request
+#   tests. Truncated fresh each server start. N defaults to 5 if only the file
+#   path is given. e.g.:
+#   LOG_TOP_MATCHES=10 LOG_TOP_MATCHES_FILE=output/top_matches.tsv npm start
+# LOG_RAW_MATCHES_FILE=path appends the top N RAW vsearch blast6out lines per
+#   query (unparsed, in vsearch's own order) to a file. Same shared N. Useful
+#   for inspecting exactly what vsearch returned before parsing/selection. e.g.:
+#   LOG_TOP_MATCHES=10 LOG_RAW_MATCHES_FILE=output/raw_matches.tsv npm start
 ```
 
 The proxy exposes three endpoints:
