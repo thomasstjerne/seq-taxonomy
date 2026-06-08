@@ -121,6 +121,8 @@ The proxy parses vsearch output and returns structured JSON:
 cd node-server && npm start
 # Listens on http://localhost:3000 by default
 # Override with PORT=XXXX or VSEARCH_URL=http://... environment variables
+# CACHE selects the cache backend: dragonfly (default), hbase, or none (no cache).
+#   CACHE=none sends every query straight to vsearch — no cache server needed.
 # LOG_TOP_MATCHES=N prints the top N matches per queried sequence to the console
 #   as a TSV block (rank, identity, qcovs, scientificName, taxonRank, dataset,
 #   targetGene) — a debugging/inspection aid, off by default. e.g.:
