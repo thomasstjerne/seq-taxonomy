@@ -232,7 +232,8 @@ Current rules under test:
 ## GBIF annotation data
 
 **`trino_joined.parquet`** — main working dataset (full join from Trino/GBIF). Not committed to git.
-171,809,965 rows · 22,036,768 unique sequences · 177 datasets · 1,186,295 unique scientific names.
+144,906,122 rows · 22,036,768 unique sequences · 177 datasets · 1,186,295 unique scientific names.
+(Deduplicated 2026-06-29: 26.9M exact duplicate rows — identical on every column, a download artifact — were removed from the original 171,809,965-row file. Unique-sequence/dataset/name counts are unaffected.)
 Taxon rank distribution: `GENUS` (30%), `SPECIES` (18%), `FAMILY` (18%), `UNRANKED` (15%), `ORDER` (7%), `KINGDOM` (5%), `CLASS` (4%), `PHYLUM` (2%), and minor ranks.
 
 **`small_dataset.parquet`** — 100,000 occurrence rows (subset for exploration), with 83,961 unique sequences from 3 GBIF datasets.
