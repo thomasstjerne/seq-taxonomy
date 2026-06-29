@@ -14,10 +14,19 @@ Many DNA sequences in GBIF carry inconsistent or missing taxonomic annotations b
 ## Requirements
 
 ```bash
+# macOS
 brew install yq node
+# Linux (Debian/Ubuntu example): install Node + the mikefarah yq v4 binary
+#   apt install nodejs npm
+#   snap install yq      # or download from https://github.com/mikefarah/yq
+
 pip install duckdb pandas openpyxl
 cd node-server && npm install
 ```
+
+> **`yq` must be the [mikefarah](https://github.com/mikefarah/yq) v4 (Go) binary, not the Python `yq` jq-wrapper.** `download_and_convert.sh` checks this and fails fast with a clear message otherwise. The build script is cross-platform (Linux/macOS).
+
+**Secrets / API keys:** copy `.env.example` → `.env` (gitignored) and fill in values such as `NCBI_API_KEY` (used by the matK reference fetch; optional but recommended — raises the NCBI rate limit 3→10 req/s).
 
 **vsearch (GBIF fork with web server support):**
 
@@ -67,6 +76,7 @@ bash analysis/download_and_convert.sh --config small12s.yaml --output-name small
 | mitofish | 12S | Fish (Actinopterygii, Chondrichthyes) | 2026-04 |
 | nbdl | 12S | Australian fauna | 2024 |
 | midori2 | 12S | Vertebrates (GenBank-derived) | GB269 |
+| midori2_* (13 genes) | CytB, COII, COIII, ND1–6, ND4L, atp6, atp8, mito-16S | Metazoa (GenBank-derived) | GB269 |
 | pr2 | 18S | Protists and algae | 5.1.0 |
 | boldistilled | COI | Animals (BOLD BIN clusters) | Apr2026 |
 | unite | ITS | Fungi and other eukaryotes | 10.0 |
@@ -76,6 +86,7 @@ bash analysis/download_and_convert.sh --config small12s.yaml --output-name small
 | gtdb | 16S | Bacteria and Archaea | v232 |
 | its2_global | ITS2 | Vascular plants | 2023-01-17 |
 | bell_brosi_rbcl | rbcL | Land plants | 2021-07 |
+| ncbi_matk | matK | Land plants (NCBI nuccore, live Entrez query) | nuccore-2026-06 |
 
 See `source-data/README.md` for download URLs and file descriptions for each source.
 
@@ -256,6 +267,8 @@ analysis/
   gtdb_to_fasta.py              # GTDB SSU → normalised FASTA
   its2_global_to_fasta.py       # ITS2 Global FASTA → normalised FASTA
   bell_brosi_rbcl_to_fasta.py   # Bell & Brosi rbcL DADA2 FASTA → normalised FASTA
+  ncbi_matk_to_fasta.py         # live NCBI Entrez query (matK) → normalised FASTA
+  vsearch_batch_benchmark.py    # benchmark vsearch throughput vs batch size / concurrency
   duplicate_analysis.py    # analyse/remove within-species duplicate sequences
   query_to_fasta.py             # filter GBIF parquet → query FASTA
   annotate_sequences.py         # send FASTA to proxy → annotated Parquet

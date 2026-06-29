@@ -10,3 +10,8 @@ source-data/*
 output/
 tests/input/
 .DS_Store
+
+# Secrets / local config — never commit real values (see .env.example)
+.env
+.env.*
+!.env.example

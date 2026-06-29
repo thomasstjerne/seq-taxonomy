@@ -18,9 +18,11 @@
 #   bash analysis/download_and_convert.sh --source-dir /path/to/storage           # store source data on external storage
 #   bash analysis/download_and_convert.sh --output-dir /path/to/storage           # write FASTAs and UDB to external storage
 #
-# Requirements: yq v4  (brew install yq)
-#               vsearch  (brew install vsearch)
-#               curl, unzip, tar, python3
+# Requirements (cross-platform):
+#   yq       mikefarah v4 — NOT the Python jq-wrapper 'yq' (https://github.com/mikefarah/yq)
+#   vsearch  only for the final UDB build (https://github.com/torognes/vsearch)
+#   python3  >= 3.9, plus per-converter deps (duckdb, pandas, openpyxl)
+#   curl, unzip, tar
 
 set -euo pipefail
 
@@ -29,8 +31,26 @@ CONFIG="$REPO_ROOT/datasets.yaml"
 cd "$REPO_ROOT"
 
 # ── dependency check ──────────────────────────────────────────────────────────
-if ! command -v yq &>/dev/null; then
-    echo "Error: yq is required. Install with: brew install yq" >&2
+require_cmd() {  # require_cmd <command> <install hint>
+    if ! command -v "$1" &>/dev/null; then
+        echo "Error: '$1' is required but was not found on PATH." >&2
+        echo "  Install: $2" >&2
+        exit 1
+    fi
+}
+
+require_cmd yq      "mikefarah yq v4 — https://github.com/mikefarah/yq  (macOS: brew install yq; Linux: snap install yq, or download the binary)"
+require_cmd curl    "your OS package manager  (Debian/Ubuntu: apt install curl; Fedora/RHEL: dnf install curl; macOS: brew install curl)"
+require_cmd python3 "https://www.python.org  (Debian/Ubuntu: apt install python3; macOS: brew install python)"
+
+# yq must be the mikefarah Go implementation v4. The Python 'yq' (a jq wrapper)
+# and mikefarah v3 use incompatible syntax and would fail cryptically downstream.
+yq_version="$(yq --version 2>&1 || true)"
+if ! printf '%s\n' "$yq_version" | grep -Eq 'mikefarah|version v?4'; then
+    echo "Error: the installed 'yq' is not the required mikefarah v4 implementation." >&2
+    echo "  Found:    $yq_version" >&2
+    echo "  Required: mikefarah yq v4 — https://github.com/mikefarah/yq" >&2
+    echo "  (The Python 'yq' jq-wrapper and mikefarah v3 are NOT compatible.)" >&2
     exit 1
 fi
 
@@ -43,13 +63,14 @@ OUTPUT_NAME="gbif_dna_taxonomy_annotation"
 SOURCE_DIR="$REPO_ROOT/source-data"
 OUTPUT_DIR="$REPO_ROOT/output/fasta"
 DATASET_FASTAS=()  # FASTAs produced by this run, in order
+DO_LIST=false
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --download-only) DO_CONVERT=false ;;
         --convert-only)  DO_DOWNLOAD=false ;;
         --skip-udb)      DO_UDB=false ;;
-        --list|--help)   : ;;  # handled below
+        --list|--help)   DO_LIST=true ;;  # handled after parsing (args are consumed by this loop)
         --config)
             shift
             [[ $# -eq 0 ]] && { echo "Error: --config requires a path argument" >&2; exit 1; }
@@ -94,10 +115,15 @@ list_datasets() {
     done
 }
 
-if [[ "${1-}" == "--list" || "${1-}" == "--help" ]]; then
+if [[ "$DO_LIST" == true ]]; then
     echo "Available datasets:"
     list_datasets
     exit 0
+fi
+
+# vsearch is only needed for the final UDB build — check it before doing any work.
+if [[ "$DO_UDB" == true && "$DO_CONVERT" == true ]]; then
+    require_cmd vsearch "https://github.com/torognes/vsearch  (conda: conda install -c bioconda vsearch; Debian/Ubuntu: apt install vsearch; macOS: brew install vsearch)"
 fi
 
 # ── main loop ─────────────────────────────────────────────────────────────────
@@ -177,8 +203,9 @@ for i in $(seq 0 $((count - 1))); do
             echo "  Post-processing …"
             eval "$postprocess_cmd"
             if [[ -n "$postprocess_fasta" ]]; then
-                # Use the post-processed FASTA in the combined output instead of the raw one
-                DATASET_FASTAS[-1]="$OUTPUT_DIR/${postprocess_fasta}.fasta"
+                # Use the post-processed FASTA in the combined output instead of the raw one.
+                # (Index explicitly rather than [-1]; negative subscripts need bash 4.3+, not macOS 3.2.)
+                DATASET_FASTAS[$((${#DATASET_FASTAS[@]} - 1))]="$OUTPUT_DIR/${postprocess_fasta}.fasta"
             fi
         fi
     fi

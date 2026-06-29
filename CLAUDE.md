@@ -22,7 +22,7 @@ The `target_gene` value must be a concept name from the GBIF target_gene vocabul
 - Browse: https://registry.gbif.org/vocabulary/target_gene/concepts
 - API: https://api.gbif.org/v1/vocabularies/target_gene/concepts?limit=100
 
-Current mappings in use: `SSU_rRNA_12S_mitochondrial`, `SSU_rRNA_18S_eukaryotic`, `SSU_rRNA_16S_prokaryotic`, `COI`, `ITS_region`.
+Current mappings in use: `SSU_rRNA_12S_mitochondrial`, `SSU_rRNA_18S_eukaryotic`, `SSU_rRNA_16S_prokaryotic`, `COI`, `ITS_region`, `ITS2`, `rbcL`, `matK`, and the mitochondrial set from MIDORI (`CytB`, `COII`, `COIII`, `ND1`–`ND6`, `ND4L`, `atp6`, `atp8`, `LSU_rRNA_16S_mitochondrial`). Coverage is chosen to match the leaf target genes that actually carry data in GBIF (facet on `nucleotideSequence.targetGene`).
 
 Conversion scripts that filter source data by gene name (e.g. `dwc_to_fasta.py`) accept a separate `--filter-gene` argument for the value used to match records in the source file (e.g. `12s`, `16s`, `its`), keeping `--target-gene` strictly for the output FASTA header.
 
@@ -41,7 +41,7 @@ bash analysis/download_and_convert.sh --source-dir /path/to/storage             
 bash analysis/download_and_convert.sh --output-dir /path/to/storage                   # write FASTAs and UDB outside the repo
 ```
 
-Requires: `yq` (v4), `vsearch`, `curl`, `python3`, `duckdb`, `pandas`, `openpyxl`.
+Requires: `yq` (**mikefarah v4** — not the Python jq-wrapper `yq`; the script checks this and fails fast), `vsearch` (only for the UDB build), `curl`, `python3` (≥3.9), `duckdb`, `pandas`, `openpyxl`. The script is cross-platform (Linux/macOS). Secrets (e.g. `NCBI_API_KEY` for the matK fetch) go in a gitignored `.env` — copy `.env.example` and fill it in.
 
 ### Output
 
@@ -65,13 +65,16 @@ Each script in `analysis/` handles one source format:
 |---|---|---|
 | `dwc_to_fasta.py` | Darwin Core archive (named or positional headers) | nbdl, refSeq_* |
 | `mitofish_to_fasta.py` | Gzipped FASTA + DuckDB parquet tables | mitofish |
-| `midori2_to_fasta.py` | FASTA with `accession###rank_taxid;...` headers | midori2 |
+| `midori2_to_fasta.py` | FASTA with `accession###rank_taxid;...` headers | midori2 (12S) + 13 per-gene mito entries (`midori2_cytb`, `midori2_co2/co3`, `midori2_nd1`–`nd6`/`nd4l`, `midori2_atp6/atp8`, `midori2_16s`) |
 | `pr2_to_fasta.py` | Excel (xlsx) via pandas | pr2 |
 | `boldistilled_to_fasta.py` | FASTA + taxonomy TSV, BIN-keyed | boldistilled |
 | `unite_to_fasta.py` | FASTA with `k__/p__/.../s__` rank prefixes | unite |
 | `gtdb_to_fasta.py` | Gzipped FASTA + taxonomy TSV, `d__/p__/.../s__` rank prefixes | gtdb |
 | `its2_global_to_fasta.py` | FASTA with `>ID;tax=k:V,p:V,...,s:V;` headers | its2_global |
 | `bell_brosi_rbcl_to_fasta.py` | FASTA with `k__/p__/.../s__` DADA2 headers + numeric taxid suffixes | bell_brosi_rbcl |
+| `ncbi_matk_to_fasta.py` | **Live NCBI Entrez query** (no static file): esearch→efetch + taxonomy lookup | ncbi_matk |
+
+`ncbi_matk_to_fasta.py` is the exception to the "one source file" rule — it downloads from NCBI at convert time (its `datasets.yaml` entry has `endpoints: []`). It reads `NCBI_API_KEY`/`NCBI_EMAIL` from `.env` if present (recommended — raises the rate limit 3→10 req/s) and runs without one otherwise, printing a notice. Raw downloads are cached under `--raw-dir`. It generalises to other NCBI genes via `--query`/`--target-gene`.
 
 ### Post-processing: within-species deduplication
 

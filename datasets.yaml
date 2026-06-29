@@ -58,6 +58,201 @@ datasets:
     prepare_sentinel: source-data/midori2/MIDORI2_UNIQ_NUC_GB269_srRNA_BLAST.fasta
     convert_cmd: python3 analysis/midori2_to_fasta.py source-data/midori2/MIDORI2_UNIQ_NUC_GB269_srRNA_BLAST.fasta midori2_12s --target-gene SSU_rRNA_12S_mitochondrial
 
+  - short_name: midori2_cytb
+    version: GB269
+    target_gene: CytB
+    taxonomic_scope: Metazoa (cytochrome b, GenBank-derived)
+    citation: >
+      Machida RJ et al. (2017) MIDORI: a new reference database for the
+      identification of organisms using cytoplasmic gene sequences.
+      Mol. Ecol. Resour. 17(4):e12-e15. https://www.reference-midori.info
+    curl_flags: --insecure  # reference-midori.info has an invalid SSL certificate
+    endpoints:
+      - https://www.reference-midori.info/download/Databases/GenBank269_2025-12-09/BLAST/uniq/fasta/MIDORI2_UNIQ_NUC_GB269_Cytb_BLAST.fasta.zip
+    prepare_cmd: unzip -n source-data/midori2_cytb/MIDORI2_UNIQ_NUC_GB269_Cytb_BLAST.fasta.zip -d source-data/midori2_cytb/
+    prepare_sentinel: source-data/midori2_cytb/MIDORI2_UNIQ_NUC_GB269_Cytb_BLAST.fasta
+    convert_cmd: python3 analysis/midori2_to_fasta.py source-data/midori2_cytb/MIDORI2_UNIQ_NUC_GB269_Cytb_BLAST.fasta midori2_cytb --target-gene CytB
+
+  - short_name: midori2_co2
+    version: GB269
+    target_gene: COII
+    taxonomic_scope: Metazoa (cytochrome c oxidase subunit II, GenBank-derived)
+    citation: >
+      Machida RJ et al. (2017) MIDORI: a new reference database for the
+      identification of organisms using cytoplasmic gene sequences.
+      Mol. Ecol. Resour. 17(4):e12-e15. https://www.reference-midori.info
+    curl_flags: --insecure  # reference-midori.info has an invalid SSL certificate
+    endpoints:
+      - https://www.reference-midori.info/download/Databases/GenBank269_2025-12-09/BLAST/uniq/fasta/MIDORI2_UNIQ_NUC_GB269_CO2_BLAST.fasta.zip
+    prepare_cmd: unzip -n source-data/midori2_co2/MIDORI2_UNIQ_NUC_GB269_CO2_BLAST.fasta.zip -d source-data/midori2_co2/
+    prepare_sentinel: source-data/midori2_co2/MIDORI2_UNIQ_NUC_GB269_CO2_BLAST.fasta
+    convert_cmd: python3 analysis/midori2_to_fasta.py source-data/midori2_co2/MIDORI2_UNIQ_NUC_GB269_CO2_BLAST.fasta midori2_co2 --target-gene COII
+
+  - short_name: midori2_co3
+    version: GB269
+    target_gene: COIII
+    taxonomic_scope: Metazoa (cytochrome c oxidase subunit III, GenBank-derived)
+    citation: >
+      Machida RJ et al. (2017) MIDORI: a new reference database for the
+      identification of organisms using cytoplasmic gene sequences.
+      Mol. Ecol. Resour. 17(4):e12-e15. https://www.reference-midori.info
+    curl_flags: --insecure  # reference-midori.info has an invalid SSL certificate
+    endpoints:
+      - https://www.reference-midori.info/download/Databases/GenBank269_2025-12-09/BLAST/uniq/fasta/MIDORI2_UNIQ_NUC_GB269_CO3_BLAST.fasta.zip
+    prepare_cmd: unzip -n source-data/midori2_co3/MIDORI2_UNIQ_NUC_GB269_CO3_BLAST.fasta.zip -d source-data/midori2_co3/
+    prepare_sentinel: source-data/midori2_co3/MIDORI2_UNIQ_NUC_GB269_CO3_BLAST.fasta
+    convert_cmd: python3 analysis/midori2_to_fasta.py source-data/midori2_co3/MIDORI2_UNIQ_NUC_GB269_CO3_BLAST.fasta midori2_co3 --target-gene COIII
+
+  - short_name: midori2_nd1
+    version: GB269
+    target_gene: ND1
+    taxonomic_scope: Metazoa (NADH dehydrogenase subunit 1, GenBank-derived)
+    citation: >
+      Machida RJ et al. (2017) MIDORI: a new reference database for the
+      identification of organisms using cytoplasmic gene sequences.
+      Mol. Ecol. Resour. 17(4):e12-e15. https://www.reference-midori.info
+    curl_flags: --insecure  # reference-midori.info has an invalid SSL certificate
+    endpoints:
+      - https://www.reference-midori.info/download/Databases/GenBank269_2025-12-09/BLAST/uniq/fasta/MIDORI2_UNIQ_NUC_GB269_ND1_BLAST.fasta.zip
+    prepare_cmd: unzip -n source-data/midori2_nd1/MIDORI2_UNIQ_NUC_GB269_ND1_BLAST.fasta.zip -d source-data/midori2_nd1/
+    prepare_sentinel: source-data/midori2_nd1/MIDORI2_UNIQ_NUC_GB269_ND1_BLAST.fasta
+    convert_cmd: python3 analysis/midori2_to_fasta.py source-data/midori2_nd1/MIDORI2_UNIQ_NUC_GB269_ND1_BLAST.fasta midori2_nd1 --target-gene ND1
+
+  - short_name: midori2_nd2
+    version: GB269
+    target_gene: ND2
+    taxonomic_scope: Metazoa (NADH dehydrogenase subunit 2, GenBank-derived)
+    citation: >
+      Machida RJ et al. (2017) MIDORI: a new reference database for the
+      identification of organisms using cytoplasmic gene sequences.
+      Mol. Ecol. Resour. 17(4):e12-e15. https://www.reference-midori.info
+    curl_flags: --insecure  # reference-midori.info has an invalid SSL certificate
+    endpoints:
+      - https://www.reference-midori.info/download/Databases/GenBank269_2025-12-09/BLAST/uniq/fasta/MIDORI2_UNIQ_NUC_GB269_ND2_BLAST.fasta.zip
+    prepare_cmd: unzip -n source-data/midori2_nd2/MIDORI2_UNIQ_NUC_GB269_ND2_BLAST.fasta.zip -d source-data/midori2_nd2/
+    prepare_sentinel: source-data/midori2_nd2/MIDORI2_UNIQ_NUC_GB269_ND2_BLAST.fasta
+    convert_cmd: python3 analysis/midori2_to_fasta.py source-data/midori2_nd2/MIDORI2_UNIQ_NUC_GB269_ND2_BLAST.fasta midori2_nd2 --target-gene ND2
+
+  - short_name: midori2_nd3
+    version: GB269
+    target_gene: ND3
+    taxonomic_scope: Metazoa (NADH dehydrogenase subunit 3, GenBank-derived)
+    citation: >
+      Machida RJ et al. (2017) MIDORI: a new reference database for the
+      identification of organisms using cytoplasmic gene sequences.
+      Mol. Ecol. Resour. 17(4):e12-e15. https://www.reference-midori.info
+    curl_flags: --insecure  # reference-midori.info has an invalid SSL certificate
+    endpoints:
+      - https://www.reference-midori.info/download/Databases/GenBank269_2025-12-09/BLAST/uniq/fasta/MIDORI2_UNIQ_NUC_GB269_ND3_BLAST.fasta.zip
+    prepare_cmd: unzip -n source-data/midori2_nd3/MIDORI2_UNIQ_NUC_GB269_ND3_BLAST.fasta.zip -d source-data/midori2_nd3/
+    prepare_sentinel: source-data/midori2_nd3/MIDORI2_UNIQ_NUC_GB269_ND3_BLAST.fasta
+    convert_cmd: python3 analysis/midori2_to_fasta.py source-data/midori2_nd3/MIDORI2_UNIQ_NUC_GB269_ND3_BLAST.fasta midori2_nd3 --target-gene ND3
+
+  - short_name: midori2_nd4
+    version: GB269
+    target_gene: ND4
+    taxonomic_scope: Metazoa (NADH dehydrogenase subunit 4, GenBank-derived)
+    citation: >
+      Machida RJ et al. (2017) MIDORI: a new reference database for the
+      identification of organisms using cytoplasmic gene sequences.
+      Mol. Ecol. Resour. 17(4):e12-e15. https://www.reference-midori.info
+    curl_flags: --insecure  # reference-midori.info has an invalid SSL certificate
+    endpoints:
+      - https://www.reference-midori.info/download/Databases/GenBank269_2025-12-09/BLAST/uniq/fasta/MIDORI2_UNIQ_NUC_GB269_ND4_BLAST.fasta.zip
+    prepare_cmd: unzip -n source-data/midori2_nd4/MIDORI2_UNIQ_NUC_GB269_ND4_BLAST.fasta.zip -d source-data/midori2_nd4/
+    prepare_sentinel: source-data/midori2_nd4/MIDORI2_UNIQ_NUC_GB269_ND4_BLAST.fasta
+    convert_cmd: python3 analysis/midori2_to_fasta.py source-data/midori2_nd4/MIDORI2_UNIQ_NUC_GB269_ND4_BLAST.fasta midori2_nd4 --target-gene ND4
+
+  - short_name: midori2_nd4l
+    version: GB269
+    target_gene: ND4L
+    taxonomic_scope: Metazoa (NADH dehydrogenase subunit 4L, GenBank-derived)
+    citation: >
+      Machida RJ et al. (2017) MIDORI: a new reference database for the
+      identification of organisms using cytoplasmic gene sequences.
+      Mol. Ecol. Resour. 17(4):e12-e15. https://www.reference-midori.info
+    curl_flags: --insecure  # reference-midori.info has an invalid SSL certificate
+    endpoints:
+      - https://www.reference-midori.info/download/Databases/GenBank269_2025-12-09/BLAST/uniq/fasta/MIDORI2_UNIQ_NUC_GB269_ND4L_BLAST.fasta.zip
+    prepare_cmd: unzip -n source-data/midori2_nd4l/MIDORI2_UNIQ_NUC_GB269_ND4L_BLAST.fasta.zip -d source-data/midori2_nd4l/
+    prepare_sentinel: source-data/midori2_nd4l/MIDORI2_UNIQ_NUC_GB269_ND4L_BLAST.fasta
+    convert_cmd: python3 analysis/midori2_to_fasta.py source-data/midori2_nd4l/MIDORI2_UNIQ_NUC_GB269_ND4L_BLAST.fasta midori2_nd4l --target-gene ND4L
+
+  - short_name: midori2_nd5
+    version: GB269
+    target_gene: ND5
+    taxonomic_scope: Metazoa (NADH dehydrogenase subunit 5, GenBank-derived)
+    citation: >
+      Machida RJ et al. (2017) MIDORI: a new reference database for the
+      identification of organisms using cytoplasmic gene sequences.
+      Mol. Ecol. Resour. 17(4):e12-e15. https://www.reference-midori.info
+    curl_flags: --insecure  # reference-midori.info has an invalid SSL certificate
+    endpoints:
+      - https://www.reference-midori.info/download/Databases/GenBank269_2025-12-09/BLAST/uniq/fasta/MIDORI2_UNIQ_NUC_GB269_ND5_BLAST.fasta.zip
+    prepare_cmd: unzip -n source-data/midori2_nd5/MIDORI2_UNIQ_NUC_GB269_ND5_BLAST.fasta.zip -d source-data/midori2_nd5/
+    prepare_sentinel: source-data/midori2_nd5/MIDORI2_UNIQ_NUC_GB269_ND5_BLAST.fasta
+    convert_cmd: python3 analysis/midori2_to_fasta.py source-data/midori2_nd5/MIDORI2_UNIQ_NUC_GB269_ND5_BLAST.fasta midori2_nd5 --target-gene ND5
+
+  - short_name: midori2_nd6
+    version: GB269
+    target_gene: ND6
+    taxonomic_scope: Metazoa (NADH dehydrogenase subunit 6, GenBank-derived)
+    citation: >
+      Machida RJ et al. (2017) MIDORI: a new reference database for the
+      identification of organisms using cytoplasmic gene sequences.
+      Mol. Ecol. Resour. 17(4):e12-e15. https://www.reference-midori.info
+    curl_flags: --insecure  # reference-midori.info has an invalid SSL certificate
+    endpoints:
+      - https://www.reference-midori.info/download/Databases/GenBank269_2025-12-09/BLAST/uniq/fasta/MIDORI2_UNIQ_NUC_GB269_ND6_BLAST.fasta.zip
+    prepare_cmd: unzip -n source-data/midori2_nd6/MIDORI2_UNIQ_NUC_GB269_ND6_BLAST.fasta.zip -d source-data/midori2_nd6/
+    prepare_sentinel: source-data/midori2_nd6/MIDORI2_UNIQ_NUC_GB269_ND6_BLAST.fasta
+    convert_cmd: python3 analysis/midori2_to_fasta.py source-data/midori2_nd6/MIDORI2_UNIQ_NUC_GB269_ND6_BLAST.fasta midori2_nd6 --target-gene ND6
+
+  - short_name: midori2_atp6
+    version: GB269
+    target_gene: atp6
+    taxonomic_scope: Metazoa (ATP synthase F0 subunit 6, GenBank-derived)
+    citation: >
+      Machida RJ et al. (2017) MIDORI: a new reference database for the
+      identification of organisms using cytoplasmic gene sequences.
+      Mol. Ecol. Resour. 17(4):e12-e15. https://www.reference-midori.info
+    curl_flags: --insecure  # reference-midori.info has an invalid SSL certificate
+    endpoints:
+      - https://www.reference-midori.info/download/Databases/GenBank269_2025-12-09/BLAST/uniq/fasta/MIDORI2_UNIQ_NUC_GB269_A6_BLAST.fasta.zip
+    prepare_cmd: unzip -n source-data/midori2_atp6/MIDORI2_UNIQ_NUC_GB269_A6_BLAST.fasta.zip -d source-data/midori2_atp6/
+    prepare_sentinel: source-data/midori2_atp6/MIDORI2_UNIQ_NUC_GB269_A6_BLAST.fasta
+    convert_cmd: python3 analysis/midori2_to_fasta.py source-data/midori2_atp6/MIDORI2_UNIQ_NUC_GB269_A6_BLAST.fasta midori2_atp6 --target-gene atp6
+
+  - short_name: midori2_atp8
+    version: GB269
+    target_gene: atp8
+    taxonomic_scope: Metazoa (ATP synthase F0 subunit 8, GenBank-derived)
+    citation: >
+      Machida RJ et al. (2017) MIDORI: a new reference database for the
+      identification of organisms using cytoplasmic gene sequences.
+      Mol. Ecol. Resour. 17(4):e12-e15. https://www.reference-midori.info
+    curl_flags: --insecure  # reference-midori.info has an invalid SSL certificate
+    endpoints:
+      - https://www.reference-midori.info/download/Databases/GenBank269_2025-12-09/BLAST/uniq/fasta/MIDORI2_UNIQ_NUC_GB269_A8_BLAST.fasta.zip
+    prepare_cmd: unzip -n source-data/midori2_atp8/MIDORI2_UNIQ_NUC_GB269_A8_BLAST.fasta.zip -d source-data/midori2_atp8/
+    prepare_sentinel: source-data/midori2_atp8/MIDORI2_UNIQ_NUC_GB269_A8_BLAST.fasta
+    convert_cmd: python3 analysis/midori2_to_fasta.py source-data/midori2_atp8/MIDORI2_UNIQ_NUC_GB269_A8_BLAST.fasta midori2_atp8 --target-gene atp8
+
+  - short_name: midori2_16s
+    version: GB269
+    target_gene: LSU_rRNA_16S_mitochondrial
+    taxonomic_scope: Metazoa (16S rRNA (mitochondrial large subunit), GenBank-derived)
+    citation: >
+      Machida RJ et al. (2017) MIDORI: a new reference database for the
+      identification of organisms using cytoplasmic gene sequences.
+      Mol. Ecol. Resour. 17(4):e12-e15. https://www.reference-midori.info
+    curl_flags: --insecure  # reference-midori.info has an invalid SSL certificate
+    endpoints:
+      - https://www.reference-midori.info/download/Databases/GenBank269_2025-12-09/BLAST/uniq/fasta/MIDORI2_UNIQ_NUC_GB269_lrRNA_BLAST.fasta.zip
+    prepare_cmd: unzip -n source-data/midori2_16s/MIDORI2_UNIQ_NUC_GB269_lrRNA_BLAST.fasta.zip -d source-data/midori2_16s/
+    prepare_sentinel: source-data/midori2_16s/MIDORI2_UNIQ_NUC_GB269_lrRNA_BLAST.fasta
+    convert_cmd: python3 analysis/midori2_to_fasta.py source-data/midori2_16s/MIDORI2_UNIQ_NUC_GB269_lrRNA_BLAST.fasta midori2_16s --target-gene LSU_rRNA_16S_mitochondrial
+
   - short_name: pr2
     version: "5.1.0"
     target_gene: SSU_rRNA_18S_eukaryotic
@@ -186,3 +381,17 @@ datasets:
       - https://data.gtdb.ecogenomic.org/releases/latest/bac120_taxonomy.tsv
       - https://data.gtdb.ecogenomic.org/releases/latest/ar53_taxonomy.tsv
     convert_cmd: python3 analysis/gtdb_to_fasta.py source-data/gtdb gtdb_16s --target-gene SSU_rRNA_16S_prokaryotic
+
+  - short_name: ncbi_matk
+    version: "nuccore-2026-06"   # NCBI nuccore is a live query — record the fetch month
+    target_gene: matK
+    taxonomic_scope: Viridiplantae (matK plastid barcode, NCBI nuccore)
+    citation: >
+      NCBI Nucleotide (nuccore): matK gene sequences for Viridiplantae,
+      retrieved via Entrez E-utilities. https://www.ncbi.nlm.nih.gov/nuccore
+    # No static endpoints — the converter queries NCBI Entrez directly at convert time.
+    # Uses NCBI_API_KEY/NCBI_EMAIL from .env if present (recommended; runs without).
+    endpoints: []
+    convert_cmd: python3 analysis/ncbi_matk_to_fasta.py ncbi_matk --target-gene matK --raw-dir source-data/ncbi_matk
+    postprocess_cmd: python3 analysis/duplicate_analysis.py --fasta output/fasta/ncbi_matk.fasta --write-deduped output/fasta/ncbi_matk_deduped.fasta
+    postprocess_fasta: ncbi_matk_deduped
