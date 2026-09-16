@@ -51,12 +51,21 @@ DWC_STANDARD_HEADERS = [
 HEADER_SENTINEL = {"occurrenceId", "occurrenceID", "id", "ID", "coreid", "coreId"}
 
 
+
+# '|' separates header fields and '>' starts a FASTA record, so neither may appear
+# inside a field value. Source data does contain them: NBDL's identifiedBy lists
+# multiple collectors as "Pogonoski | Russell", which silently shifted every later
+# field for 28 records until a header-width check caught it.
+def strip_delimiters(value: str) -> str:
+    return str(value).replace("|", "/").replace(">", "") if value else ""
+
 def sanitize(value: str) -> str:
     """ASCII-safe, whitespace→underscore, for BLAST/vsearch header compatibility."""
     if not value:
         return ""
     normalized = unicodedata.normalize("NFD", value)
     ascii_only = normalized.encode("ascii", "ignore").decode("ascii")
+    ascii_only = strip_delimiters(ascii_only)
     return re.sub(r"\s+", "_", ascii_only).strip("_")
 
 
@@ -169,7 +178,7 @@ def build_header(occ: dict, seq_id: str, dataset: str, target_gene: str) -> str:
         sanitize(occ.get("genus", "")),
         get_species(occ),
     ]
-    return "|".join(fields)
+    return "|".join(strip_delimiters(f) for f in fields)
 
 
 def main():

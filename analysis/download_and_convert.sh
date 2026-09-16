@@ -39,6 +39,51 @@ require_cmd() {  # require_cmd <command> <install hint>
     fi
 }
 
+# ── UDB verification helper (Tier 3) ─────────────────────────────────────────
+# Emit up to <n> records from the start and <n> from the end of a FASTA, without
+# reading the whole file: awk exits after n records, and tail seeks. Sampling the
+# per-dataset parts rather than the combined FASTA guarantees every dataset is
+# represented — including ones far smaller than an even step across the combined
+# file would ever land on — and, because the parts are concatenated in order, the
+# samples still span the whole index positionally.
+sample_records() {  # sample_records <fasta> <n>
+    local f="$1" n="$2"
+    [[ -s "$f" ]] || return 0
+    awk -v n="$n" '/^>/ { c++ } c > n { exit } { print }' "$f"
+    tail -c 262144 "$f" | awk -v n="$n" '
+        /^>/ { started = 1; c++ }
+        !started { next }
+        c > n { exit }
+        { print }'
+}
+
+# ── download verification (Tier 0) ────────────────────────────────────────────
+# Runs on every downloaded file, and on every cached file before it is trusted.
+# Catches the two failure modes that otherwise reach a shipped index silently:
+# an endpoint returning an HTML error page, and a truncated archive.
+verify_download() {  # verify_download <path>
+    local f="$1" kind
+    if [[ ! -s "$f" ]]; then
+        echo "    verify: FAILED — empty file" >&2
+        return 1
+    fi
+    kind=$(file -b "$f" 2>/dev/null || echo unknown)
+    case "$kind" in
+        *HTML*|*"XML document"*)
+            echo "    verify: FAILED — got '$kind', i.e. an error page rather than data" >&2
+            return 1 ;;
+    esac
+    case "$f" in
+        *.zip)
+            unzip -qt "$f" >/dev/null 2>&1 || { echo "    verify: FAILED — corrupt or truncated zip" >&2; return 1; } ;;
+        *.tgz|*.tar.gz)
+            tar -tzf "$f" >/dev/null 2>&1  || { echo "    verify: FAILED — corrupt or truncated tar.gz" >&2; return 1; } ;;
+        *.gz)
+            gzip -t "$f" 2>/dev/null       || { echo "    verify: FAILED — corrupt or truncated gzip" >&2; return 1; } ;;
+    esac
+    return 0
+}
+
 require_cmd yq      "mikefarah yq v4 — https://github.com/mikefarah/yq  (macOS: brew install yq; Linux: snap install yq, or download the binary)"
 require_cmd curl    "your OS package manager  (Debian/Ubuntu: apt install curl; Fedora/RHEL: dnf install curl; macOS: brew install curl)"
 require_cmd python3 "https://www.python.org  (Debian/Ubuntu: apt install python3; macOS: brew install python)"
@@ -64,6 +109,8 @@ SOURCE_DIR="$REPO_ROOT/source-data"
 OUTPUT_DIR="$REPO_ROOT/output/fasta"
 DATASET_FASTAS=()  # FASTAs produced by this run, in order
 DO_LIST=false
+CURL_PROGRESS="--no-progress-meter"
+[[ -t 1 ]] && CURL_PROGRESS="--progress-bar"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -158,11 +205,30 @@ for i in $(seq 0 $((count - 1))); do
                 dest="$dir/$filename"
 
                 if [[ -f "$dest" ]]; then
-                    echo "  Already present: $filename"
-                else
+                    if verify_download "$dest"; then
+                        echo "  Already present: $filename"
+                    else
+                        echo "  Cached $filename failed verification — re-downloading" >&2
+                        rm -f "$dest"
+                    fi
+                fi
+
+                if [[ ! -f "$dest" ]]; then
                     echo "  Downloading $filename …"
+                    # Download to .part and rename only after verifying, so an
+                    # interrupted transfer is never cached as complete.
+                    rm -f "$dest.part"
                     # shellcheck disable=SC2086
-                    curl -L --progress-bar $curl_flags -o "$dest" "$url"
+                    curl -L --fail --show-error $CURL_PROGRESS \
+                         --retry 3 --retry-delay 5 --connect-timeout 30 \
+                         -w "    http %{http_code}  %{size_download} bytes  %{time_total}s\n" \
+                         $curl_flags -o "$dest.part" "$url"
+                    if ! verify_download "$dest.part"; then
+                        rm -f "$dest.part"
+                        echo "  Aborting: $filename did not verify." >&2
+                        exit 1
+                    fi
+                    mv "$dest.part" "$dest"
                 fi
             done
         fi
@@ -242,6 +308,43 @@ if [[ "$DO_CONVERT" == true ]]; then
         LOG="$OUTPUT_DIR/${OUTPUT_NAME}.log"
         vsearch --makeudb_usearch "$COMBINED" --output "$UDB" --log "$LOG"
         echo "  Done — $UDB"
+
+        # ── self-hit smoke test (Tier 3) ─────────────────────────────────────
+        # Every count-based check above can pass on a corrupt UDB. This one
+        # cannot: sequences taken from the combined FASTA must find themselves
+        # in the index that was just built from it.
+        echo ""
+        echo "  Verifying UDB — self-hit query …"
+        SAMPLE="$OUTPUT_DIR/.udb_selftest.fasta"
+        HITS="$OUTPUT_DIR/.udb_selftest.tsv"
+        PER_PART=4
+        : > "$SAMPLE"
+        for part in "${parts[@]}"; do
+            sample_records "$part" "$PER_PART" >> "$SAMPLE"
+        done
+        # Count distinct IDs: a part shorter than the tail window contributes its
+        # records twice, and duplicates would otherwise deflate the pass rate.
+        got=$(awk -F'|' '/^>/ { print substr($1, 2) }' "$SAMPLE" | sort -u | wc -l | tr -d ' ')
+        echo "  Sampled $got sequences from ${#parts[@]} datasets"
+
+        vsearch --usearch_global "$SAMPLE" --db "$UDB" \
+                --id 0.99 --maxaccepts 1 --maxhits 1 --maxrejects 32 \
+                --blast6out "$HITS" --quiet --threads 4
+
+        matched=$(awk -F'\t' '$3 >= 99.0 {print $1}' "$HITS" | sort -u | wc -l | tr -d ' ')
+        if [[ "$got" -eq 0 ]]; then
+            echo "  UDB self-hit test FAILED — could not sample the combined FASTA." >&2
+            exit 1
+        fi
+        pct=$(( matched * 100 / got ))
+        echo "  Self-hit: $matched/$got ($pct%) sampled sequences found themselves at >=99% identity"
+        if [[ "$pct" -lt 95 ]]; then
+            echo "  UDB self-hit test FAILED (<95%) — the index is incomplete or corrupt." >&2
+            echo "  Leaving $SAMPLE and $HITS in place for inspection." >&2
+            exit 1
+        fi
+        rm -f "$SAMPLE" "$HITS"
+        echo "  UDB verified."
     fi
 fi
 

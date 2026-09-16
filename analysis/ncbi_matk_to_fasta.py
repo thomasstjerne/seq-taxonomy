@@ -62,6 +62,14 @@ RANK_TO_FIELD = {
 
 # ── .env loading (no dependency) ──────────────────────────────────────────────
 
+
+# '|' separates header fields and '>' starts a FASTA record, so neither may appear
+# inside a field value. Source data does contain them: NBDL's identifiedBy lists
+# multiple collectors as "Pogonoski | Russell", which silently shifted every later
+# field for 28 records until a header-width check caught it.
+def strip_delimiters(value: str) -> str:
+    return str(value).replace("|", "/").replace(">", "") if value else ""
+
 def load_dotenv():
     """Populate os.environ from a .env at the repo root, without overriding real env."""
     import os
@@ -250,7 +258,7 @@ def build_header(accession, tax, dataset, target_gene):
         s(tax.get("genus", "")),
         s(tax.get("species", "")),
     ]
-    return "|".join(fields)
+    return "|".join(strip_delimiters(f) for f in fields)
 
 
 def iter_fasta(path):

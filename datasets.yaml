@@ -269,7 +269,10 @@ datasets:
     postprocess_fasta: pr2_18s_deduped
 
   - short_name: boldistilled
-    version: Apr2026
+    # The endpoint always serves the current release; the converter resolves the
+    # release month from the extracted filenames and records it next to the output
+    # FASTA as <output>.version. Do not pin a version here — it would go stale silently.
+    version: rolling
     target_gene: COI
     taxonomic_scope: Animals (COI barcode, BOLD BIN clusters)
     citation: >
@@ -277,9 +280,10 @@ datasets:
       BOLD Systems. https://www.boldsystems.org
     endpoints:
       - https://us-sea-1.linodeobjects.com/boldistilled/source.zip
+    # No prepare_sentinel: a sentinel naming one release would skip extraction of a
+    # newer zip. unzip -n is cheap and never overwrites, so just always run it.
     prepare_cmd: unzip -n source-data/boldistilled/source.zip -d source-data/boldistilled/
-    prepare_sentinel: source-data/boldistilled/source/BOLDistilled_COI_Apr2026_SEQUENCES.fasta
-    convert_cmd: python3 analysis/boldistilled_to_fasta.py source-data/boldistilled/source/BOLDistilled_COI_Apr2026_SEQUENCES.fasta source-data/boldistilled/source/BOLDistilled_COI_Apr2026_TAXONOMY.tsv boldistilled_coi --target-gene COI
+    convert_cmd: python3 analysis/boldistilled_to_fasta.py source-data/boldistilled/source boldistilled_coi --target-gene COI
 
   - short_name: unite
     version: "10.0"

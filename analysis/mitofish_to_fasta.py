@@ -47,6 +47,14 @@ GENE_NAME_MAP = {
 }
 
 
+
+# '|' separates header fields and '>' starts a FASTA record, so neither may appear
+# inside a field value. Source data does contain them: NBDL's identifiedBy lists
+# multiple collectors as "Pogonoski | Russell", which silently shifted every later
+# field for 28 records until a header-width check caught it.
+def strip_delimiters(value: str) -> str:
+    return str(value).replace("|", "/").replace(">", "") if value else ""
+
 def revcomp(seq: str) -> str:
     return seq.translate(COMPLEMENT)[::-1]
 
@@ -152,7 +160,7 @@ def build_header(accession: str, tax: dict, dataset: str, target_gene: str) -> s
         tax.get("genus", ""),
         tax.get("species", ""),
     ]
-    return "|".join(fields)
+    return "|".join(strip_delimiters(f) for f in fields)
 
 
 def main():

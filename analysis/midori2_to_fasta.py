@@ -31,6 +31,14 @@ RANK_PREFIXES = {"kingdom", "phylum", "class", "order", "family", "genus", "subo
                  "subclass", "subfamily", "superfamily", "tribe", "subtribe", "infraorder"}
 
 
+
+# '|' separates header fields and '>' starts a FASTA record, so neither may appear
+# inside a field value. Source data does contain them: NBDL's identifiedBy lists
+# multiple collectors as "Pogonoski | Russell", which silently shifted every later
+# field for 28 records until a header-width check caught it.
+def strip_delimiters(value: str) -> str:
+    return str(value).replace("|", "/").replace(">", "") if value else ""
+
 def parse_node(node: str) -> tuple[str, str, str]:
     """
     Parse a single taxonomy node into (rank, name, taxid).
@@ -168,7 +176,7 @@ def build_header(seq_id, accession_number, scientific_name, taxon_rank,
         s(genus),
         s(species),
     ]
-    return "|".join(fields)
+    return "|".join(strip_delimiters(f) for f in fields)
 
 
 def main():

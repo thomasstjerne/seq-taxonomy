@@ -46,11 +46,20 @@ RANK_PREFIXES = {
 RANK_ORDER = ["kingdom", "phylum", "class", "order", "family", "genus", "species"]
 
 
+
+# '|' separates header fields and '>' starts a FASTA record, so neither may appear
+# inside a field value. Source data does contain them: NBDL's identifiedBy lists
+# multiple collectors as "Pogonoski | Russell", which silently shifted every later
+# field for 28 records until a header-width check caught it.
+def strip_delimiters(value: str) -> str:
+    return str(value).replace("|", "/").replace(">", "") if value else ""
+
 def sanitize(value: str) -> str:
     if not value:
         return ""
     normalized = unicodedata.normalize("NFD", value)
     ascii_only = normalized.encode("ascii", "ignore").decode("ascii")
+    ascii_only = strip_delimiters(ascii_only)
     return re.sub(r"\s+", "_", ascii_only).strip("_")
 
 
@@ -125,7 +134,7 @@ def build_header(seq_id: str, ranks: dict, dataset: str, target_gene: str) -> st
         r("genus"),
         r("species"),
     ]
-    return "|".join(fields)
+    return "|".join(strip_delimiters(f) for f in fields)
 
 
 def main():
