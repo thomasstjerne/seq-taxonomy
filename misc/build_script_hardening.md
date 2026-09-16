@@ -232,8 +232,13 @@ effectively free (awk exits after n records; `tail` seeks) and covers 26/26 data
 the parts are concatenated in order, the samples still span the whole index positionally, so
 a truncated UDB is still caught.
 
-Parts smaller than the 256 KB tail window contribute their records twice, so the pass rate is
-computed over *distinct* query IDs — otherwise those duplicates would deflate it.
+The pass rate is computed over distinct **whole headers**, matching what vsearch reports in
+`blast6out` column 1 (headers contain no whitespace, so nothing is truncated). An earlier
+attempt keyed on the first header field instead and reported a nonsensical 103%: one GenBank
+accession appears across several MIDORI gene sets — a mitochondrial genome contributes a
+region per gene — so `U03732.1.2438.2866` is a distinct record in co3, nd2, nd3 and nd4l, and
+collapsing on the ID merged them. Keying on the whole header also absorbs a genuine duplicate
+should a part ever be smaller than the 256 KB tail window.
 
 ### Header delimiter corruption
 `sanitize()` collapsed whitespace but never stripped `|`, the field delimiter itself. No

@@ -322,9 +322,13 @@ if [[ "$DO_CONVERT" == true ]]; then
         for part in "${parts[@]}"; do
             sample_records "$part" "$PER_PART" >> "$SAMPLE"
         done
-        # Count distinct IDs: a part shorter than the tail window contributes its
-        # records twice, and duplicates would otherwise deflate the pass rate.
-        got=$(awk -F'|' '/^>/ { print substr($1, 2) }' "$SAMPLE" | sort -u | wc -l | tr -d ' ')
+        # Key on the WHOLE header, which is what vsearch reports in blast6out
+        # column 1 (headers contain no whitespace, so nothing is truncated).
+        # Keying on the first field instead would merge distinct records: one
+        # GenBank accession appears across several MIDORI gene sets, since a
+        # mitochondrial genome contributes a region per gene. sort -u also
+        # absorbs a genuine duplicate if a part is smaller than the tail window.
+        got=$(awk '/^>/ { print substr($0, 2) }' "$SAMPLE" | sort -u | wc -l | tr -d ' ')
         echo "  Sampled $got sequences from ${#parts[@]} datasets"
 
         vsearch --usearch_global "$SAMPLE" --db "$UDB" \
