@@ -253,3 +253,41 @@ exactly 23 fields.
 
 **Note:** the shipped index still contains the 28 bad records. They are corrected only by a
 rebuild.
+
+
+---
+
+## Rebuild 2026-09-17 (convert-only) and a self-inflicted bug
+
+Re-ran with `--convert-only` off the cached sources to get the converter fixes into the
+index. Conversion, concatenation and indexing all succeeded — **28 malformed headers to 0**,
+sequence count unchanged at 5,075,399, confirming the delimiter fix altered field contents
+and not record counts. Self-hit verification of the new UDB: **208/208 (100%)**.
+
+### 24. The Tier 3 sampler killed the build (SIGPIPE)
+The run exited 141 *after* writing a correct UDB. In `sample_records`, `awk` exits as soon
+as it has its n records; `tail` then receives SIGPIPE; `set -o pipefail` propagates that and
+`set -e` terminates the script.
+
+I introduced this and then failed to catch it, because I tested `sample_records` by sourcing
+it into a shell with neither `-e` nor `pipefail` — different shell options from the ones it
+runs under, so the test could not have failed. **Any helper for this script must be exercised
+under `set -euo pipefail`.**
+
+Fixed by removing the pipe: `tail` writes 256 KB to a temp file and `awk` reads the file.
+Verified under real shell options.
+
+### 25. Verification has only ever been observed passing
+Two bugs so far have been in the verification code itself — this one, and an earlier counting
+error that reported 103% by comparing distinct first-header-fields against whole-header keys.
+Both would have been caught by pointing the checks at a deliberately broken input.
+
+Before Tier 3 gates a scheduled build, **test that it fails**: truncate a copy of the UDB, or
+build an index from a subset and query it with sequences that are not in it, and confirm a
+non-zero exit. A check only ever seen passing is not known to work.
+
+### 26. A failed verification leaves temp files behind
+The aborted run left a partial `output/fasta/.udb_selftest.fasta`. Intentional on a genuine
+verification failure (the files are wanted for inspection), but it also happens when the
+verification code itself crashes, and nothing distinguishes the two. A `trap` that cleans up
+on anything other than a real self-hit failure would be better.

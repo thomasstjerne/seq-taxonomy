@@ -46,8 +46,13 @@ Requires: `yq` (**mikefarah v4** — not the Python jq-wrapper `yq`; the script 
 ### Output
 
 - `output/fasta/<dataset>.fasta` — per-dataset normalised FASTA
-- `output/fasta/gbif_dna_taxonomy_annotation.fasta` — combined (2.2 GB, ~2.6M sequences)
-- `output/fasta/gbif_dna_taxonomy_annotation.udb` — vsearch UDB index (9 GB)
+- `output/fasta/gbif_dna_taxonomy_annotation.fasta` — combined (4.7 GB, ~5.1M sequences)
+- `output/fasta/gbif_dna_taxonomy_annotation.udb` — vsearch UDB index (18 GB)
+
+Sizes are as `ls -lh` reports them, from the 2026-09-17 build of all 26 sources. The UDB is
+built with `--wordlength 12` rather than vsearch's default of 8 — see the comment on
+`WORDLENGTH` in `analysis/download_and_convert.sh`. A search adopts the word length stored in
+the UDB, so the server command below needs no matching flag.
 
 ### Normalised FASTA header format
 

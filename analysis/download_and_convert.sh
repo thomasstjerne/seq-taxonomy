@@ -15,6 +15,7 @@
 #   bash analysis/download_and_convert.sh --list                                 # print available datasets
 #   bash analysis/download_and_convert.sh --config small12s.yaml                 # use a custom config file
 #   bash analysis/download_and_convert.sh --output-name small_12s                # set output FASTA/UDB base name
+#   bash analysis/download_and_convert.sh --wordlength 8                         # UDB k-mer length (default 12)
 #   bash analysis/download_and_convert.sh --source-dir /path/to/storage           # store source data on external storage
 #   bash analysis/download_and_convert.sh --output-dir /path/to/storage           # write FASTAs and UDB to external storage
 #
@@ -50,11 +51,18 @@ sample_records() {  # sample_records <fasta> <n>
     local f="$1" n="$2"
     [[ -s "$f" ]] || return 0
     awk -v n="$n" '/^>/ { c++ } c > n { exit } { print }' "$f"
-    tail -c 262144 "$f" | awk -v n="$n" '
+    # Via a temp file rather than `tail | awk`: awk exits as soon as it has n
+    # records, tail then takes SIGPIPE, and under `set -o pipefail` that failure
+    # propagates and kills the build. Writing 256 KB to disk avoids the pipe.
+    local tmp
+    tmp=$(mktemp)
+    tail -c 262144 "$f" > "$tmp"
+    awk -v n="$n" '
         /^>/ { started = 1; c++ }
         !started { next }
         c > n { exit }
-        { print }'
+        { print }' "$tmp"
+    rm -f "$tmp"
 }
 
 # ── download verification (Tier 0) ────────────────────────────────────────────
@@ -105,6 +113,15 @@ DO_CONVERT=true
 DO_UDB=true
 REQUESTED=""   # colon-delimited list of requested short_names, empty = all
 OUTPUT_NAME="gbif_dna_taxonomy_annotation"
+# k-mer length for the UDB index. vsearch defaults to 8; 12 makes search ~2.4x
+# faster because occurrences per k-mer fall as 1/4^k, and k-mer counting — not
+# alignment — dominates search time on a reference this size. Measured on a 40%
+# sample: 130 -> 309 seq/s, index 7.2 -> 7.4 GB, no hits lost above 97% identity.
+# Losses concentrate below 92% (a seed needs k consecutive exact matches, and at
+# 90% identity mismatches average ~10 bp apart), so species- and genus-level
+# assignments are structurally unaffected. Gain saturates at 12; 13 adds ~3%.
+# Analysis: vsearch-dev/RESULTS-search-optimisation.md (2026-09-22).
+WORDLENGTH=12
 SOURCE_DIR="$REPO_ROOT/source-data"
 OUTPUT_DIR="$REPO_ROOT/output/fasta"
 DATASET_FASTAS=()  # FASTAs produced by this run, in order
@@ -130,6 +147,13 @@ while [[ $# -gt 0 ]]; do
             shift
             [[ $# -eq 0 ]] && { echo "Error: --output-name requires a name argument" >&2; exit 1; }
             OUTPUT_NAME="$1"
+            ;;
+        --wordlength)
+            shift
+            [[ $# -eq 0 ]] && { echo "Error: --wordlength requires an integer argument" >&2; exit 1; }
+            [[ "$1" =~ ^[0-9]+$ ]] && [[ "$1" -ge 3 ]] && [[ "$1" -le 15 ]] \
+                || { echo "Error: --wordlength must be an integer 3-15 (got '$1')" >&2; exit 1; }
+            WORDLENGTH="$1"
             ;;
         --source-dir)
             shift
@@ -306,7 +330,9 @@ if [[ "$DO_CONVERT" == true ]]; then
         echo "════════════════════════════════════════"
         UDB="$OUTPUT_DIR/${OUTPUT_NAME}.udb"
         LOG="$OUTPUT_DIR/${OUTPUT_NAME}.log"
-        vsearch --makeudb_usearch "$COMBINED" --output "$UDB" --log "$LOG"
+        echo "  Word length: $WORDLENGTH"
+        vsearch --makeudb_usearch "$COMBINED" --output "$UDB" --log "$LOG" \
+                --wordlength "$WORDLENGTH"
         echo "  Done — $UDB"
 
         # ── self-hit smoke test (Tier 3) ─────────────────────────────────────
